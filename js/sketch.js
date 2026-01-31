@@ -22,7 +22,7 @@ function setup() {
     let totalSeconds = hours * 3600 + minutes * 60 + seconds;
     let dayProgress = totalSeconds / 86400; // total seconds in a day
 
-    if (month == 1) {
+    if (month == 1 || month == 2) {
         // January
         let c = new Snowflakes(dayProgress);
         renderGen = c.render();

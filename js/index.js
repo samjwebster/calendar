@@ -1,10 +1,11 @@
 new p5();
 
+// Fun homepage website for my girlfriend Julia
+
 function generateGreeting() {
     let greetingTextElement = document.getElementById("greeting");
 
     let names = ["Julia", "Jooby"];
-    names = ["Julia"];
 
     let currentHour = new Date().getHours();
     let greetings;
@@ -87,44 +88,39 @@ function generateDateTime() {
     setTimeout(generateDateTime, secondsTilNextMinute * 1000);
 }
 
-function generateWeather() {
-    let weatherElement = document.getElementById("weather");
+function generateQuote() {
+    let quoteElement = document.getElementById("quote");
 
-    // Use the weather.gov API to get current weather at the user's location
-    let lat, lon;
-    function setLatLong(position) {
-        lat = position.coords.latitude;
-        lon = position.coords.longitude;
+    quotes = [{
+            "text": "And the joobies theyre marching to and fro.",
+            "author": "one of the Jooby songs"
+        }, {
+            "text": "Hiya there.",
+            "author": "Sooby"
+        }, {
+            "text": "hey Mamma. its me eeviekatt. I miss yoo.",
+            "author": "Evie"
+        }, {
+            "text": "All the joobies joobies joobies. All the joobies joobies joobies.",
+            "author": "Jooby"
+        }
+        
 
-        let weatherApiUrl = `https://api.weather.gov/points/${lat},${lon}`;
-        fetch(weatherApiUrl)
-            .then(response => response.json())
-            .then(data => {
-                let forecastUrl = data.properties.forecast;
-                return fetch(forecastUrl);
-            })
-            .then(response => response.json())
-            .then(forecastData => {
-                console.log(forecastData);
-                let currentForecast = forecastData.properties.periods[0];
 
-                let temperature = currentForecast.temperature;
-                let unit = currentForecast.temperatureUnit;
-                let conditions = currentForecast.shortForecast;
+    ]
 
-                let weatherString = temperature + "°" + unit + "&nbsp&nbsp-&nbsp&nbsp" + conditions;
 
-                weatherElement.innerHTML = weatherString;
-            })
-            .catch(error => {
-                console.error("Error fetching weather data:", error);
-                weatherElement.innerHTML = "Unable to retrieve weather data.";
-            });
+    let quote = random(quotes);
+    let quoteHTML = "&ldquo;" + quote.text + "&rdquo;";
+    if (quote.author) {
+        quoteHTML += "<br>&mdash; " + quote.author;
+    } else {
+        quoteHTML += "<br>&mdash; Unknown";
     }
-    navigator.geolocation.getCurrentPosition(setLatLong);
-    weatherElement.innerHTML = "Unable to retrieve weather data.";
+    
+    quoteElement.innerHTML = quoteHTML;
 }
 
 generateGreeting();
 generateDateTime();
-generateWeather();
+generateQuote();
