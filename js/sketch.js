@@ -12,9 +12,6 @@ function setup() {
     let day = now.getDate();
     let month = now.getMonth() + 1;
 
-    month = 1;
-    day = 25;
-
     let hours = now.getHours();
     let minutes = now.getMinutes();
     let seconds = now.getSeconds();
@@ -22,9 +19,13 @@ function setup() {
     let totalSeconds = hours * 3600 + minutes * 60 + seconds;
     let dayProgress = totalSeconds / 86400; // total seconds in a day
 
-    if (month == 1 || month == 2) {
+    if (month == 1) {
         // January
         let c = new Snowflakes(dayProgress);
+        renderGen = c.render();
+    } else if (month == 2) {
+        // February
+        let c = new Valentines(dayProgress);
         renderGen = c.render();
     } else if (month == 5) {
         let c = new Garden(dayProgress);
@@ -380,6 +381,206 @@ class Birthday {
             yield;
         }
 
+
+        yield;
+    }
+}
+
+class Valentines {
+    constructor(magic) {
+        this.magic = magic;
+
+        if (this.magic < 0.33 || this.magic > 0.75) {
+            // Darker scheme
+            this.bgCols = [
+                color("#9c1212"),
+                color("#d60000"),
+                color("#452829"),
+            ];
+        } else {
+            // Lighter scheme
+            this.bgCols = [
+                color("#ff257e"),
+                color("#FFC5e6"),
+                color("#EEEEEE"),
+            ];
+        }
+
+        this.accentCols = [
+            color("#fff2d8"),
+            color("#fccdd3"),
+            color("#fca2cf"),
+            color("#d8f4f6"),
+            color("#ade1eb"),
+        ];
+    
+        this.shadowDir = random()*TAU;
+
+        // push();
+        // colorMode(HSB);
+        // // add light pastel hues for all colors of rainbow to accents
+
+        // for (let h = 0; h < 360; h += 30) {
+        //     let col = color(h, 30, 95);
+        //     this.accentCols.push(col);
+        // }
+        // pop();
+    }
+
+    *renderHeart(x, y, size) {
+        let colMain = random(this.accentCols);
+        let colThreads = random(this.accentCols);
+        while(colThreads === colMain) colThreads = random(this.accentCols);
+        
+        let rotation = PI + random(-PI/12, PI/12); // rotate hearts a bit for more visual interest
+
+        let heartVerts = [];
+        let numVerts = 90;
+
+        size *= 0.8
+
+        for(let i = 0; i < numVerts; i++) {
+            let t = i / numVerts;
+            let angle = t * TAU;
+            
+            // Heart shape parametric equations
+            let sx = 16 * pow(sin(angle), 3);
+            let sy = 13 * cos(angle) - 5 * cos(2*angle) - 2 * cos(3*angle) - cos(4*angle);
+            
+            let r = size * 0.05;
+            let vx = x + sx * r * cos(rotation) - sy * r * sin(rotation);
+            let vy = y + sx * r * sin(rotation) + sy * r * cos(rotation);
+            heartVerts.push([vx, vy]);
+        }
+
+        // draw heart
+        noStroke();
+        fill(colMain);
+        beginShape();
+        for (let v of heartVerts) {
+            vertex(v[0], v[1]);
+        }
+        endShape(CLOSE);
+
+        // between each vert, draw a 'thread' to make it look like knitted onto the background
+        stroke(colThreads);
+        strokeWeight(size * 0.04);
+        noFill();
+
+        drawingContext.shadowOffsetX = 0.001 * min(width, height) * cos(this.shadowDir);
+        drawingContext.shadowOffsetY = 0.001 * min(width, height) * sin(this.shadowDir);
+        
+        let threadLen = size * 0.15;
+        for(let i = 0; i < heartVerts.length; i += 2) {
+            if(random() > 0.5) continue; // skip some threads for visual interest
+
+            let v1 = heartVerts[i];
+            let v2 = heartVerts[(i+1) % heartVerts.length];
+            let mp = [(v1[0] + v2[0]) / 2, (v1[1] + v2[1]) / 2];
+
+            let ang = atan2(v2[1] - v1[1], v2[0] - v1[0]) + PI/2;
+            // ang += PI/2;
+
+            let start = [mp[0] + cos(ang) * threadLen/2, mp[1] + sin(ang) * threadLen/2];
+            let end = [mp[0] - cos(ang) * threadLen/2, mp[1] - sin(ang) * threadLen/2];
+
+            let verts = [];
+            let aOff = random()*TAU;
+            for(let j = 0; j < 10; j++) {
+                let t = j / 10;
+                let p = lerpPos(start, end, t);
+                let n = noise(p[0] * 0.05, p[1] * 0.05);
+                let a = TAU*n+aOff;
+                let r = size * 0.02;
+                let vx = p[0] + cos(a) * r;
+                let vy = p[1] + sin(a) * r;
+                verts.push([vx, vy]);
+            }
+
+            beginShape();
+            for(let v of verts) {
+                vertex(v[0], v[1]);
+            }
+            endShape();
+        }
+
+
+
+        yield;
+    }
+
+    *render() {
+        // First, do layered gradient background
+        for(let i = 0; i < 3; i++) {
+
+            let randomDir = random() * TAU;
+
+            let pos1 = [width/2 + cos(randomDir)*width*0.66, height/2 + sin(randomDir)*height*0.66];
+            let pos2 = [width/2 + cos(randomDir + PI)*width*0.66, height/2 + sin(randomDir + PI)*height*0.66];
+
+            let col1 = random(this.bgCols);
+            let col2 = lerpColor(random(this.accentCols), color(0), random(0.25, 0.75));
+
+            col1 = transCol(col1, random());
+            col2 = transCol(col2, random());
+
+            linearGradient(...pos1, ...pos2, col1, col2);
+            noStroke();
+            blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
+            rect(0, 0, width, height);
+        }
+        yield;
+        blendMode(BLEND);
+
+        // Next, draw hearts
+        let numHearts = 200;
+        let szRange = [min(width,height)*0.05, min(width,height)*0.15];
+        let positions = [];
+        let failedAttempts = 0;
+
+        while (positions.length < numHearts || failedAttempts < 1500) {
+            let x = random(width);
+            let y = random(height);
+            let size = random(...szRange);
+
+            // check for overlap with existing positions
+            let overlapping = false;
+            for (let pos of positions) {
+                let d = dist(x, y, pos[0], pos[1]);
+                if (d < (size + pos[2]) * 0.3) { // 0.6 is a spacing factor
+                    overlapping = true;
+                    break;
+                }
+            }
+
+            if (!overlapping) {
+                positions.push([x, y, size]);
+            } else {
+                failedAttempts++;
+            }
+        }
+
+        // drawingContext.shadowOffsetX = 2;
+        // drawingContext.shadowOffsetY = -2;
+        drawingContext.shadowBlur = 5;
+        drawingContext.shadowColor = lerpColor(random(this.accentCols), color(0), 0.75);
+        let shadowOffsetRange = [0.005 * min(width, height), 0.025 * min(width, height)];
+
+        for (let i = 0; i < numHearts; i++) {
+            let t = i / numHearts;
+            let offsetAmt = lerp(...shadowOffsetRange, t);
+            drawingContext.shadowOffsetX = offsetAmt * cos(this.shadowDir);
+            drawingContext.shadowOffsetY = offsetAmt * sin(this.shadowDir);
+
+            let [x, y, size] = positions[i];
+            let heartGen = this.renderHeart(x, y, size);
+
+            // render it
+            while (!heartGen.next().done) {
+                // do nothing, just let it render over multiple frames
+            }
+            yield;
+        }
 
         yield;
     }

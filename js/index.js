@@ -13,8 +13,12 @@ function generateGreeting() {
         greetings = ["Good morning", "Wake up", "Rise and shine"];
     } else if (currentHour >= 12 && currentHour < 18) {
         greetings = ["Good afternoon", "Hello there", "Lovely day"];
+    } else if (currentHour >= 18 && currentHour < 22) {
+        greetings = ["Good evening", "Time to relax"];
+    } else if (currentHour >= 22 || currentHour <= 1) {
+        greetings = ["Good night", "Sweet dreams"];
     } else {
-        greetings = ["Good evening", "Good night", "Sweet dreams"];
+        greetings = ["You should be sleeping"];
     }
 
     let greeting = random(greetings) + ", <b>" + random(names) + "</b>.";
