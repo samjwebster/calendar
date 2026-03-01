@@ -69,10 +69,28 @@ function lerpPos(p1, p2, t) {
     return [x, y];
 }
 
+function lerpPts(pts, t) {
+    let start = floor(t * (pts.length-1));
+    let end = ceil(t * (pts.length-1));
+    let localT = (t * (pts.length-1)) % 1;
+    return lerpPos(pts[start], pts[end], localT);
+}
+
 function wobbleCol(col, max = 0.1) {
     let rCol = color(round(random(255)), round(random(255)), round(random(255)));
     return lerpColor(col, rCol, random(0.01, max));
 }
+
+function wobbleHSB(col, max = 0.1) {
+    colorMode(HSB);
+    let h = hue(col);
+    let s = constrain(saturation(col) + random(-100*max, 100*max), 0, 100);
+    let b = constrain(brightness(col) + random(-100*max, 100*max), 0, 100);
+    let wobbled = color(h, s, b);
+    colorMode(RGB);
+    return wobbled;
+}
+
 
 function nPoint(point, strength = 1) {
     let a = lerp(0, 2*PI, noise(point[0] * nScale, point[1] * nScale));

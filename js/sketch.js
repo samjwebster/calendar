@@ -27,6 +27,10 @@ function setup() {
         // February
         let c = new Valentines(dayProgress);
         renderGen = c.render();
+    } else if (month == 3) {
+        // March
+        let c = new Clovers(dayProgress);
+        renderGen = c.render();
     } else if (month == 5) {
         let c = new Garden(dayProgress);
         renderGen = c.render();
@@ -42,6 +46,55 @@ function draw() {
     }
 }
 
+function getPositions(num, sizeRange, failThreshold = 1000) {
+    let positions = [];
+    let failedAttempts = 0;
+
+    while (positions.length < num && failedAttempts < failThreshold) {
+        let x = random(width);
+        let y = random(height);
+        let size = random(...sizeRange);
+
+        // check for overlap with existing positions
+        let overlapping = false;
+        for (let pos of positions) {
+            let d = dist(x, y, pos[0], pos[1]);
+            if (d < (size + pos[2]) * 0.3) { // 0.6 is a spacing factor
+                overlapping = true;
+                break;
+            }
+        }
+
+        if (!overlapping) {
+            positions.push([x, y, size]);
+        } else {
+            failedAttempts++;
+        }
+    }
+
+    return positions;
+}
+
+function gradientBackground(bgCols, accentCols) {
+    for(let i = 0; i < 3; i++) {
+        let randomDir = random() * TAU;
+
+        let pos1 = [width/2 + cos(randomDir)*width*0.66, height/2 + sin(randomDir)*height*0.66];
+        let pos2 = [width/2 + cos(randomDir + PI)*width*0.66, height/2 + sin(randomDir + PI)*height*0.66];
+
+        let col1 = random(bgCols);
+        let col2 = lerpColor(random(accentCols), color(0), random(0.25, 0.75));
+
+        col1 = transCol(col1, random());
+        col2 = transCol(col2, random());
+
+        linearGradient(...pos1, ...pos2, col1, col2);
+        noStroke();
+        blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
+        rect(0, 0, width, height);
+    }
+    blendMode(BLEND);
+}
 
 class Snowflakes {
     constructor(magic) {
@@ -182,26 +235,8 @@ class Snowflakes {
 
     *render() {
         // First, do layered gradient background
-        for(let i = 0; i < 3; i++) {
-
-            let randomDir = random() * TAU;
-
-            let pos1 = [width/2 + cos(randomDir)*width*0.66, height/2 + sin(randomDir)*height*0.66];
-            let pos2 = [width/2 + cos(randomDir + PI)*width*0.66, height/2 + sin(randomDir + PI)*height*0.66];
-
-            let col1 = random(this.bgCols);
-            let col2 = lerpColor(random(this.accentCols), color(0), random(0.25, 0.75));
-
-            col1 = transCol(col1, random());
-            col2 = transCol(col2, random());
-
-            linearGradient(...pos1, ...pos2, col1, col2);
-            noStroke();
-            blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
-            rect(0, 0, width, height);
-        }
+        gradientBackground(this.bgCols, this.accentCols);
         yield;
-        blendMode(BLEND);
 
         // Next, draw snowflakes
         let numFlakes = 300;
@@ -252,140 +287,6 @@ class Snowflakes {
     }
 }
 
-class Birthday {
-    constructor(magic) {
-        this.magic = magic;
-
-        if (this.magic < 0.33 || this.magic > 0.75) {
-            // Darker scheme
-            this.bgCols = [
-                color("#16476A"),
-                color("#132440"),
-                color("#452829"),
-            ];
-        } else {
-            // Lighter scheme
-            this.bgCols = [
-                color("#A3CEF1"),
-                color("#D4F1F9"),
-                color("#F1E3D3"),
-            ];
-        }
-
-        this.accentCols = [
-            color("#EFECE3"),
-            color("#C0C9EE"),
-        ];
-    
-        push();
-        colorMode(HSB);
-        // add light pastel hues for all colors of rainbow to accents
-
-        for (let h = 0; h < 360; h += 30) {
-            let col = color(h, 30, 95);
-            this.accentCols.push(col);
-        }
-        pop();
-    }
-
-    *renderBalloon(x, y, size, col) {
-
-        let bottomAngle = PI/4;
-
-        let balloonVerts = [];
-
-        // balloon radius is 1.25 at the bottom angle, slight point where knot is
-        let numVerts = 5
-
-
-
-        // draw balloon
-        noStroke();
-        fill(transCol(col, 0.8));
-        beginShape();
-        for (let v of balloonVerts) {
-            vertex(v[0], v[1]);
-        }
-        endShape(CLOSE);
-
-
-
-        yield;
-    }
-
-    *render() {
-        // First, do layered gradient background
-        for(let i = 0; i < 3; i++) {
-
-            let randomDir = random() * TAU;
-
-            let pos1 = [width/2 + cos(randomDir)*width*0.66, height/2 + sin(randomDir)*height*0.66];
-            let pos2 = [width/2 + cos(randomDir + PI)*width*0.66, height/2 + sin(randomDir + PI)*height*0.66];
-
-            let col1 = random(this.bgCols);
-            let col2 = lerpColor(random(this.accentCols), color(0), random(0.25, 0.75));
-
-            col1 = transCol(col1, random());
-            col2 = transCol(col2, random());
-
-            linearGradient(...pos1, ...pos2, col1, col2);
-            noStroke();
-            blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
-            rect(0, 0, width, height);
-        }
-        yield;
-        blendMode(BLEND);
-
-        // Next, draw balloons
-        let numBalloons = 100;
-        let szRange = [min(width,height)*0.015, min(width,height)*0.05];
-        let positions = [];
-        let failedAttempts = 0;
-
-        while (positions.length < numBalloons || failedAttempts < 1500) {
-            let x = random(width);
-            let y = random(height);
-            let size = random(...szRange);
-
-            // check for overlap with existing positions
-            let overlapping = false;
-            for (let pos of positions) {
-                let d = dist(x, y, pos[0], pos[1]);
-                if (d < (size + pos[2]) * 0.6) { // 0.6 is a spacing factor
-                    overlapping = true;
-                    break;
-                }
-            }
-
-            if (!overlapping) {
-                positions.push([x, y, size]);
-            } else {
-                failedAttempts++;
-            }
-        }
-
-        let balloonGens = [];
-        
-        for (let i = 0; i < numBalloons; i++) {
-            let [x, y, size] = positions[i];
-            let col = random(this.accentCols);
-            let balloonGen = this.renderBalloon(x, y, size, col);
-            balloonGens.push(balloonGen);
-        }
-
-        while (balloonGens.length > 0) {
-            for (let gen of balloonGens) {
-                gen.next();
-            }
-            balloonGens = balloonGens.filter(gen => !gen.next().done);
-            yield;
-        }
-
-
-        yield;
-    }
-}
-
 class Valentines {
     constructor(magic) {
         this.magic = magic;
@@ -415,16 +316,6 @@ class Valentines {
         ];
     
         this.shadowDir = random()*TAU;
-
-        // push();
-        // colorMode(HSB);
-        // // add light pastel hues for all colors of rainbow to accents
-
-        // for (let h = 0; h < 360; h += 30) {
-        //     let col = color(h, 30, 95);
-        //     this.accentCols.push(col);
-        // }
-        // pop();
     }
 
     *renderHeart(x, y, size) {
@@ -535,30 +426,7 @@ class Valentines {
         // Next, draw hearts
         let numHearts = 200;
         let szRange = [min(width,height)*0.05, min(width,height)*0.15];
-        let positions = [];
-        let failedAttempts = 0;
-
-        while (positions.length < numHearts || failedAttempts < 1500) {
-            let x = random(width);
-            let y = random(height);
-            let size = random(...szRange);
-
-            // check for overlap with existing positions
-            let overlapping = false;
-            for (let pos of positions) {
-                let d = dist(x, y, pos[0], pos[1]);
-                if (d < (size + pos[2]) * 0.3) { // 0.6 is a spacing factor
-                    overlapping = true;
-                    break;
-                }
-            }
-
-            if (!overlapping) {
-                positions.push([x, y, size]);
-            } else {
-                failedAttempts++;
-            }
-        }
+        let positions = getPositions(numHearts, szRange);
 
         // drawingContext.shadowOffsetX = 2;
         // drawingContext.shadowOffsetY = -2;
@@ -584,6 +452,369 @@ class Valentines {
 
         yield;
     }
+}
+
+class Clovers {
+    constructor(dayProgress) {
+        this.dayProgress = dayProgress;
+
+        let ctr = [width/2, height/2 + (0.1 * height)];
+        let solarRadius = sqrt(sq(width) + sq(height)) * 0.30;
+        let angle = this.dayProgress * TAU + PI/2;
+
+        this.sunPos = [ctr[0] + cos(angle)*solarRadius, ctr[1] + sin(angle)*solarRadius];
+        this.dirToSun = atan2(this.sunPos[1] - ctr[1], this.sunPos[0] - ctr[0]);
+
+        this.moonPos = [ctr[0] + cos(angle + PI)*solarRadius, ctr[1] + sin(angle + PI)*solarRadius];
+        this.dirToMoon = atan2(this.moonPos[1] - ctr[1], this.moonPos[0] - ctr[0]);
+
+        this.skyCols = {
+            "day": [
+                color("#c9fcfd"),
+                color("#91fcff"),
+                color("#00f9ff"),
+            ],
+            "night": [
+                color("#1A1A2E"),
+                color("#16213E"),
+                color("#0F3460"),
+            ],
+            "transition": [
+                color("#3D45AA"),
+                color("#DA3D20"),
+                color("#F8843F"),
+                color("#FFF19B"),
+            ]
+        }
+
+    }
+
+    *render() {
+        let bgCols;
+        let skyGradX;
+        let day = this.sunPos[1] < this.moonPos[1];
+        if(day) {
+            bgCols = this.skyCols.day;
+            skyGradX = this.sunPos[0];
+        } else {
+            bgCols = this.skyCols.night;
+            skyGradX = this.moonPos[0];
+        }
+        gradientBackground(bgCols, this.skyCols.transition);
+
+        blendMode(HARD_LIGHT);
+
+        let skyGrad = drawingContext.createRadialGradient(
+            skyGradX, 2*height, height/2, skyGradX, 2*height, 2.2*height
+        );
+
+        if(day) {
+            skyGrad.addColorStop(1, transCol(random(this.skyCols.day), random(0.50, 0.75)));
+            skyGrad.addColorStop(random(0.75, 0.90), transCol(random(this.skyCols.day), random(0.50, 0.75)));
+            skyGrad.addColorStop(random(0.25, 0.45), transCol(random(this.skyCols.night), random(0.50, 0.75)));
+            skyGrad.addColorStop(0, transCol(random(this.skyCols.night), random(0.50, 0.75)));
+        } else {
+            skyGrad.addColorStop(1, transCol(random(this.skyCols.night), random(0.50, 0.75)));
+            skyGrad.addColorStop(random(0.75, 0.90), transCol(random(this.skyCols.night), random(0.50, 0.75)));
+            skyGrad.addColorStop(random(0.25, 0.45), transCol(random(this.skyCols.day), random(0.50, 0.75)));
+            skyGrad.addColorStop(0, transCol(random(this.skyCols.day), random(0.50, 0.75)));
+        }
+        skyGrad.addColorStop(0.6, transCol(random(this.skyCols.transition), random(0.25, 0.50)));
+
+        drawingContext.fillStyle = skyGrad;
+        noStroke();
+        rect(0, 0, width, height);
+
+        if(day && random() < 0.5) {
+            // Rainbow
+
+            let rainbowCenter = [random(width), height*random(1, 1.5)];
+            let rainbowSize = random(width, width*2);
+
+            let rainbowGrad = drawingContext.createRadialGradient(
+                ...rainbowCenter, rainbowSize*0.5, ...rainbowCenter, rainbowSize
+            );
+
+            colorMode(HSB);
+            let rainbowCols = [];
+            for (let h = 0; h < 360; h += 1) {
+                let col = color(h, 50, 100);
+                rainbowCols.push(col);
+            }
+            colorMode(RGB);
+            
+            let rainbowWidth = 0.1
+            let rainbowCenterT = random(0.2, 0.4);
+            let rainbowTRange = [rainbowCenterT - rainbowWidth/2, rainbowCenterT + rainbowWidth/2];
+
+            for(let i = 0; i < rainbowCols.length; i++) {
+                let col = rainbowCols[i];
+                rainbowGrad.addColorStop(lerp(...rainbowTRange, i / rainbowCols.length), transCol(col, 0.5));
+            }
+
+            let randomSkyCol = transCol(day ? random(this.skyCols.day) : random(this.skyCols.night), 0);
+            rainbowGrad.addColorStop(0, randomSkyCol);
+            rainbowGrad.addColorStop(rainbowTRange[0] - 0.10, randomSkyCol);
+            rainbowGrad.addColorStop(rainbowTRange[1] + 0.10, randomSkyCol);
+            rainbowGrad.addColorStop(1, randomSkyCol);
+
+            colorMode(OVERLAY);
+
+            drawingContext.fillStyle = rainbowGrad;
+            noStroke();
+            rect(0, 0, width, height); 
+
+
+        }
+
+        
+        let solarSize = min(width, height) * 0.1;
+
+        let sunCol = color(255, 255, 200);
+        fill(sunCol);
+        circle(this.sunPos[0], this.sunPos[1], solarSize);
+
+        let moonCol = color(200, 200, 255);
+        fill(moonCol);
+        circle(this.moonPos[0], this.moonPos[1], solarSize);
+        
+        
+        radialGradient(...this.sunPos, solarSize*0.5, ...this.sunPos, solarSize, sunCol, transCol(sunCol, 0));
+        rect(0, 0, width, height); 
+        radialGradient(...this.moonPos, solarSize*0.5, ...this.moonPos, solarSize, moonCol, transCol(moonCol, 0));
+        rect(0, 0, width, height); 
+
+
+        let starT = map((this.dayProgress + 0.25)%1, 0, 0.5, 0, 1);
+        let starAlpha = 0;
+        if(starT < 0.1) {
+            starAlpha = map(starT, 0, 0.1, 0, 1);
+        } else if(starT > 0.9) {
+            starAlpha = map(starT, 0.9, 1, 1, 0);
+        } else {
+            starAlpha = 1;
+        }
+
+        if (starAlpha > 0) {
+            let positions = getPositions(200, [min(width,height)*0.002, min(width,height)*0.005]);
+            for(let pos of positions) {
+                let col = color(255, 255, 255, starAlpha * random(150, 255));
+                fill(col);
+                circle(pos[0], pos[1], random(1, 3));
+            }
+            yield;
+        }
+        blendMode(BLEND);
+
+
+        this.terrainSlices = [];
+        let sliceRes = 1;
+        let sliceCt = ceil((height) / sliceRes);
+        
+        let terrRes = 2;
+        let terrCt = ceil((width*1.2) / terrRes) + 1;
+
+        for(let i = 0; i < sliceCt; i++) {
+            let ti = i / sliceCt;
+            let sliceY = lerp(2*height/3, height*2, ti);
+            console.log(sliceY)
+            let slice = [];
+            for(let j = 0; j < terrCt; j++) {
+                let tj = j / terrCt;
+
+                let easeOut = (t) => 1 - pow(1-t, 3);
+
+                let ntjRange = [0, 1];
+                let ntjRangeOff = 5 * (1 - easeOut(ti));
+                ntjRange[0] -= ntjRangeOff;
+                ntjRange[1] += ntjRangeOff;
+
+                let x = map(tj, 0, 1, -(width*0.1), (width*1.1));
+                
+                let nx = map(tj, 0, 1, ...ntjRange, true)
+                let ny = easeOut(ti) * 5;
+                // let n = noise(map(tj, 0, 1, ...ntjRange, true) * terrDetail, easeOut(ti) * terrDetail) ** 3;
+
+                slice.push({
+                    x: x,
+                    y: sliceY,
+                    sliceT: ti,
+                    nx: nx,
+                    ny: ny,
+                    n: 0,
+                });
+            }
+            this.terrainSlices.push(slice);
+        }
+
+        // Octave noise
+        let nLayers = 5;
+        let influence = 0.50;
+        let seenNRange = [Infinity, -Infinity];
+        for(let i = 0; i < nLayers; i++) {
+            noiseSeed(round(random()*10000));
+            let terrDetail = lerp(0.5, 2.5, i / nLayers);
+            let exponent = random(2, 5);
+            let offX = random() * 1000;
+            let offY = random() * 1000;
+        
+            for(let slice of this.terrainSlices) {
+                for(let pt of slice) {
+                    let n = map(noise(pt.nx * terrDetail + offX, pt.ny * terrDetail + offY) ** exponent, 0, 1, -1, 1);
+                    pt.n += n * influence;
+                    if (pt.n < seenNRange[0]) seenNRange[0] = pt.n;
+                    if (pt.n > seenNRange[1]) seenNRange[1] = pt.n;
+                }
+            }
+
+            influence *= 0.5;
+        }
+
+        for(let slice of this.terrainSlices) {
+            for(let pt of slice) {
+                pt.n = map(pt.n, ...seenNRange, -1, 1);
+
+            }
+        }
+
+        let shadowCol = lerpColor(random(this.skyCols.night), color(5), 0.25);
+
+        let colGrass = color(50, 200, 50);
+
+        let multedCol = color(
+            red(colGrass) * red(shadowCol) / 255,
+            green(colGrass) * green(shadowCol) / 255,
+            blue(colGrass) * blue(shadowCol) / 255,
+        );
+        let screenedCol = color(
+            red(colGrass) * 0.5 + red(day ? sunCol : moonCol) * 0.5,
+            green(colGrass) * 0.5 + green(day ? sunCol : moonCol) * 0.5,
+            blue(colGrass) * 0.5 + blue(day ? sunCol : moonCol) * 0.5,
+        );
+
+        if(!day) {
+            // pre darken grass overall, and recompute darker multedCol
+            colGrass = lerpColor(colGrass, multedCol, 0.25);
+            multedCol = color(
+                red(colGrass) * red(shadowCol) / 255,
+                green(colGrass) * green(shadowCol) / 255,
+                blue(colGrass) * blue(shadowCol) / 255,
+            );
+        }
+
+        let heightVar = [-height*0.1, height*0.1];
+        let heightVarTMult = 3;
+
+        let grassHeightRange = [0.02 * min(width, height), 0.05 * min(width, height)];
+        let lightTransitionT = 0.1;
+
+        for(let slice of this.terrainSlices) {
+            let heightVarT = heightVarTMult*map(slice[0].sliceT, 0, 1, 0.15, 1);
+
+            push();
+            fill(shadowCol);
+            beginShape();
+            for(let pt of slice) {
+                pt.modY = pt.y + map(pt.n, 0, 1, ...heightVar) * heightVarT;
+                vertex(pt.x, pt.modY);
+            }
+            vertex(width*1.2, height);
+            vertex(-width*0.2, height);
+            endShape(CLOSE);
+            pop();
+
+            for(let i = 1; i < slice.length - 1; i++) {
+                let curr = slice[i];
+                if(curr.x < -width*0.1 || curr.x > width*1.1) continue; // skip points outside of the main area for performance
+                if(curr.modY > height*1.05) continue; // skip points that are too low for performance
+
+
+                let prev = slice[i-1];
+                let next = slice[i+1];
+
+                // Get the normal of the terrain
+                let terrainAngle = atan2(next.modY - prev.modY, next.x - prev.x);
+                let normalAngle = terrainAngle - PI/2;
+
+                let grassHeight = map(((curr.n+1)/2) + random(-0.1, 0.1), 0, 1, ...grassHeightRange);
+
+                let grassAngle = lerp(normalAngle, -PI/2, random(0, 0.90));
+                let grassPos = random() < 0.5 ? lerpPos([curr.x, curr.modY], [prev.x, prev.modY], random(0.1, 0.5)) : lerpPos([curr.x, curr.modY], [next.x, next.modY], random(0.1, 0.5));
+                let grassBladeTop = [
+                    grassPos[0] + cos(grassAngle) * grassHeight,
+                    grassPos[1] + sin(grassAngle) * grassHeight
+                ];
+                let grassBladeLeft = [
+                    grassPos[0] + cos(grassAngle + PI/2) * grassHeight * random(0.1, 0.2),
+                    grassPos[1] + sin(grassAngle + PI/2) * grassHeight * random(0.1, 0.2),
+                ];
+                let grassBladeRight = [
+                    grassPos[0] + cos(grassAngle - PI/2) * grassHeight * random(0.1, 0.2),
+                    grassPos[1] + sin(grassAngle - PI/2) * grassHeight * random(0.1, 0.2),
+                ];
+
+                let col = wobbleHSB(colGrass, 0.05);
+                let dot = day ? cos(this.dirToSun - normalAngle) : cos(this.dirToMoon - normalAngle);
+                if(dot > 0) {
+                    // Screen blend the grass color and sun color
+                    let intensity = 0.20;
+                    if(dot < lightTransitionT) intensity = map(dot, 0, lightTransitionT, 0, 0.20);
+                    col = lerpColor(col, screenedCol, intensity);
+                } else {
+                    // Multiply blend the grass color and shadow color
+                    let intensity = 0.20;
+                    if(dot > -lightTransitionT) intensity = map(dot, -lightTransitionT, 0, 0.20, 0);
+                    col = lerpColor(col, multedCol, intensity);
+                }
+
+                // Fog - lerp the grass color with the sky color based on the depth (sliceT)
+                if(curr.sliceT < 0.25) {
+                    let fogT = map(curr.sliceT, 0, 0.25, 0.5, 0);
+                    let fogCol = day ? random(this.skyCols.day) : random(this.skyCols.night);
+                    col = lerpColor(col, fogCol, fogT);
+                }
+
+                linearGradient(
+                    curr.x, curr.modY, grassBladeTop[0], grassBladeTop[1],
+                    shadowCol, col
+                );
+
+                // fill(col);
+                
+                beginShape();
+                vertex(...grassBladeLeft);
+                vertex(...grassBladeRight);
+                vertex(...grassBladeTop);
+                endShape(CLOSE);
+
+                if(random() < 0.10) {
+                    // make it a clover by adding circles at the top of the blade
+                    let numCircles = random() < 0.90 ? 3 : 4;
+                    let aOffset = random() * TAU;
+                    let rT = random(0.05, 0.125);
+                    for(let j = 0; j < numCircles; j++) {
+                        let angle = aOffset + j * (TAU / numCircles) + random(-0.1, 0.1);
+                        let cx = grassBladeTop[0] + cos(angle) * grassHeight * rT;
+                        let cy = grassBladeTop[1] + sin(angle) * grassHeight * rT;
+                        circle(cx, cy, grassHeight * (rT*2));
+                    }
+
+                }
+                
+            }
+            yield;
+
+            // for(let pt of slice) {
+            //     if(pt.x < -width*0.1 || pt.x > width*1.1) continue; // skip points outside of the main area for performance
+            //     if(pt.y > height*1.05) continue; // skip points that are too low for performance
+            //     fill(wobbleCol(colGrass, 0.2));
+            //     circle(pt.x, pt.y + map(pt.n, 0, 1, ...heightVar) * heightVarT, random(2, 5));
+            // }
+            // yield;
+
+        }
+    }
+
 }
 
 class Brush {
