@@ -95,7 +95,9 @@ function generateDateTime() {
 function generateQuote() {
     let quoteElement = document.getElementById("quote");
 
-    quotes = [{
+    quotes = [
+        // Messages
+        {
             "text": "And the joobies theyre marching to and fro.",
             "author": "one of the Jooby songs"
         }, {
@@ -107,11 +109,45 @@ function generateQuote() {
         }, {
             "text": "All the joobies joobies joobies. All the joobies joobies joobies.",
             "author": "Jooby"
+        },
+
+        // Positive affirmations
+        {
+            "text": "I am powerful from the top of my head to the tips of my toes.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am worthy of all the power of the universe, into my soul, my heart, and my blood.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am a radiant being of light, and I am love.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am a beautiful person, inside and out.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am doing my best, and that is enough.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am grateful for this moment, and I will find joy in it.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am growing and learning every day, and I embrace the journey.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am surrounded by love and support, and I am never alone.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am resilient and can overcome any challenge that comes my way.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am deserving of happiness and success, and I will work towards them with confidence.",
+            "author": "Sam Webster"
+        }, {
+            "text": "I am a unique and valuable person, and I will celebrate my individuality.",
+            "author": "Sam Webster"
         }
         
-
-
-    ]
+    ]   
 
 
     let quote = random(quotes);
