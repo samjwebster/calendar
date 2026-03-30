@@ -45,13 +45,14 @@ function shuffleArray(array) {
     return array;
 }
 
-function linearGradient(sX, sY, eX, eY, colorS, colorE){
+function linearGradient(sX, sY, eX, eY, colorS, colorE, returnGradient = false) {
     let gradient = drawingContext.createLinearGradient(
          sX, sY, eX, eY
     );
     gradient.addColorStop(0, colorS);
     gradient.addColorStop(1, colorE);
-    drawingContext.fillStyle = gradient;
+    if(returnGradient) return gradient;
+    else drawingContext.fillStyle = gradient;
 }
 
 function radialGradient(sX, sY, sR, eX, eY, eR, colorS, colorE){

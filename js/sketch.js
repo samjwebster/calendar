@@ -11,6 +11,7 @@ function setup() {
     let now = new Date();
     let day = now.getDate();
     let month = now.getMonth() + 1;
+    // month = 4;
 
     let hours = now.getHours();
     let minutes = now.getMinutes();
@@ -30,6 +31,10 @@ function setup() {
     } else if (month == 3) {
         // March
         let c = new Clovers(dayProgress);
+        renderGen = c.render();
+    } else if (month == 4) {
+        // April
+        let c = new Clouds(dayProgress);
         renderGen = c.render();
     } else if (month == 5) {
         let c = new Garden(dayProgress);
@@ -489,7 +494,7 @@ class Clovers {
 
     }
 
-    *render() {
+    renderSky() {
         let bgCols;
         let skyGradX;
         let day = this.sunPos[1] < this.moonPos[1];
@@ -602,8 +607,15 @@ class Clovers {
                 fill(col);
                 circle(pos[0], pos[1], random(1, 3));
             }
-            yield;
         }
+
+        return [sunCol, moonCol];
+    }
+
+    *render() {
+        let [sunCol, moonCol] = this.renderSky();
+        yield;
+
         blendMode(BLEND);
 
 
@@ -1056,3 +1068,573 @@ class Garden {
 
     }
 }
+
+class Clouds {
+    constructor(dayProgress) {
+        this.dayProgress = dayProgress;
+
+        this.dayProgress = random(0.5, 0.7)
+
+        let ctr = [width/2, height/2 + (0.1 * height)];
+        let solarRadius = sqrt(sq(width) + sq(height)) * 0.25;
+        let angle = this.dayProgress * TAU + PI/2;
+
+        this.sunPos = [ctr[0] + cos(angle)*solarRadius, ctr[1] + sin(angle)*solarRadius];
+        this.dirToSun = atan2(this.sunPos[1] - ctr[1], this.sunPos[0] - ctr[0]);
+
+        this.moonPos = [ctr[0] + cos(angle + PI)*solarRadius, ctr[1] + sin(angle + PI)*solarRadius];
+        this.dirToMoon = atan2(this.moonPos[1] - ctr[1], this.moonPos[0] - ctr[0]);
+
+        this.skyCols = {
+            "day": [
+                color("#c9fcfd"),
+                color("#91fcff"),
+                color("#00f9ff"),
+            ],
+            "night": [
+                color("#1A1A2E"),
+                color("#16213E"),
+                color("#0F3460"),
+            ],
+            "transition": [
+                color("#3D45AA"),
+                color("#DA3D20"),
+                color("#F8843F"),
+                color("#FFF19B"),
+            ]
+        }
+
+    }
+
+    renderSky() {
+        let bgCols;
+        let skyGradX;
+        let day = this.sunPos[1] < this.moonPos[1];
+        if(day) {
+            bgCols = this.skyCols.day;
+            skyGradX = this.sunPos[0];
+        } else {
+            bgCols = this.skyCols.night;
+            skyGradX = this.moonPos[0];
+        }
+        gradientBackground(bgCols, this.skyCols.transition);
+
+        blendMode(HARD_LIGHT);
+
+        let skyGrad = drawingContext.createRadialGradient(
+            skyGradX, 2*height, height/2, skyGradX, 2*height, 2.2*height
+        );
+
+        if(day) {
+            let cols = shuffleArray([...this.skyCols.day]);
+            for(let i = 0; i < cols.length; i++) {
+                let col = cols[i];
+                skyGrad.addColorStop(i/(cols.length-1), transCol(col, random(0.50, 0.75)));
+            }
+
+            // skyGrad.addColorStop(1, transCol(random(this.skyCols.day), random(0.50, 0.75)));
+            // skyGrad.addColorStop(random(0.75, 0.90), transCol(random(this.skyCols.day), random(0.50, 0.75)));
+            // skyGrad.addColorStop(random(0.25, 0.45), transCol(random(this.skyCols.night), random(0.50, 0.75)));
+            // skyGrad.addColorStop(0, transCol(random(this.skyCols.night), random(0.50, 0.75)));
+        } 
+        // else {
+        //     skyGrad.addColorStop(1, transCol(random(this.skyCols.night), random(0.50, 0.75)));
+        //     skyGrad.addColorStop(random(0.75, 0.90), transCol(random(this.skyCols.night), random(0.50, 0.75)));
+        //     skyGrad.addColorStop(random(0.25, 0.45), transCol(random(this.skyCols.day), random(0.50, 0.75)));
+        //     skyGrad.addColorStop(0, transCol(random(this.skyCols.day), random(0.50, 0.75)));
+        // }
+        // skyGrad.addColorStop(0.6, transCol(random(this.skyCols.transition), random(0.25, 0.50)));
+
+        drawingContext.fillStyle = skyGrad;
+        noStroke();
+        rect(0, 0, width, height);
+        
+        let solarSize = min(width, height) * 0.1;
+        let sunCol = color(255, 255, 200);
+        let moonCol = color(200, 200, 255);
+        if(day) {
+            fill(sunCol);
+            circle(this.sunPos[0], this.sunPos[1], solarSize);
+            radialGradient(...this.sunPos, solarSize*0.5, ...this.sunPos, solarSize, sunCol, transCol(sunCol, 0));
+            rect(0, 0, width, height); 
+        } else {
+            fill(moonCol);
+            circle(this.moonPos[0], this.moonPos[1], solarSize);
+            radialGradient(...this.moonPos, solarSize*0.5, ...this.moonPos, solarSize, moonCol, transCol(moonCol, 0));
+            rect(0, 0, width, height); 
+        }
+
+        let starT = map((this.dayProgress + 0.25)%1, 0, 0.5, 0, 1);
+        let starAlpha = 0;
+        if(starT < 0.1) {
+            starAlpha = map(starT, 0, 0.1, 0, 1);
+        } else if(starT > 0.9) {
+            starAlpha = map(starT, 0.9, 1, 1, 0);
+        } else {
+            starAlpha = 1;
+        }
+
+        if (starAlpha > 0) {
+            let positions = getPositions(200, [min(width,height)*0.002, min(width,height)*0.005]);
+            for(let pos of positions) {
+                let col = color(255, 255, 255, starAlpha * random(150, 255));
+                fill(col);
+                circle(pos[0], pos[1], random(1, 3));
+            }
+        }
+
+        return [sunCol, moonCol];
+    }
+
+    *render() {
+        let [sunCol, moonCol] = this.renderSky();
+        yield;
+
+        let sliceCt = 40;
+
+        let zoomOutMod = 2.5;
+        let cellRes = min(width, height) * 0.0125;
+        let cellCtX = ceil(width / cellRes);
+        let cellCtY = ceil(height / cellRes);
+
+        // let cloudNoiseThreshold = 0.25;
+        let threshRange = [0.20, 0.35];
+        let cloudNoiseDetailX = width / min(width, height) * 1.5;
+        let cloudNoiseDetailY = width / min(width, height) * 2.0;
+        let cloudNoiseDetailZ = 7;
+
+        let noiseOffsetX = random() * 1000;
+        let noiseOffsetY = random() * 1000;
+
+        let solarPos = day ? this.sunPos : this.moonPos;
+
+        let allCells = [];
+        let flockPosOptions = [];
+
+        for(let i = 0; i < sliceCt; i++) {
+            let t = i / sliceCt;
+            let zoomLevel = lerp(1, zoomOutMod, 1 - t);
+            let cells = [];
+            // Generate cells
+            for(let i = 0; i < cellCtX; i++) {
+                cells.push([])
+                let tx = lerp(i/(cellCtX-1), (i+1)/(cellCtX-1), random());
+                let cartX = width * tx;
+                let nx = lerp(-zoomLevel/2, zoomLevel/2, tx);
+                for(let j = 0; j < cellCtY; j++) {
+                    let ty = lerp(j/(cellCtY-1), (j+1)/(cellCtY-1), random());
+                    let cartY = height * ty;
+                    let ny = lerp(-zoomLevel/2, zoomLevel/2, ty);
+
+                    let cloudNoiseThreshold = lerp(...threshRange, constrain(dist(nx, ny, 0, 0), 0 ,1) + random(-0.1, 0.1)); 
+
+                    // let currDetailX = (sin(ty ) + 1) * cloudNoiseDetailX * 2;
+                    // if(random() > 0.9) console.log(ty, currDetailX)
+
+                    let n = noise(nx * cloudNoiseDetailX + noiseOffsetX, ny * cloudNoiseDetailY + noiseOffsetY, t*cloudNoiseDetailZ);
+                    if(n < cloudNoiseThreshold) {
+                        cells[i].push({x: cartX, y: cartY, n: n, t: t, nx: nx, ny: ny, onBottom: 0, onTop: 0, onLeft: 0, onRight: 0});
+
+                        // if (t > 0) {
+                        //     let distToSolar = dist(cartX, cartY, ...solarPos);
+                        //     let distThreshold = random(0.8, 1.2) * t * 0.40 * min(width, height);
+                        //     if(distToSolar < distThreshold) {
+                        //         // Clear out the center area for better viewing
+                        //         cells[i].push({empty: true});
+                        //     } else {
+                        //         cells[i].push({x: cartX, y: cartY, n: n, t: t, nx: nx, ny: ny, onBottom: 0, onTop: 0, onLeft: 0, onRight: 0});
+                        //     }
+                        // } else {
+                        //     cells[i].push({x: cartX, y: cartY, n: n, t: t, nx: nx, ny: ny, onBottom: 0, onTop: 0, onLeft: 0, onRight: 0});
+                        // }
+                    } else {
+                        cells[i].push({empty: true});
+                        if(t > 0.2 && t < 0.8) flockPosOptions.push([cartX, cartY, t]);
+                    }
+                }
+            }
+
+            // Compute cell neighbor data
+            for(let i = 0; i < cellCtX; i++) {
+                for(let j = 0; j < cellCtY; j++) {
+                    let cell = cells[i][j];
+                    if(cell.empty == true) continue;
+
+                    let numChecks = 5;
+
+                    // On Bottom
+                    let ctr = 0;
+                    for(let k = 1; k <= numChecks; k++) {
+                        let checkJ = j + k;
+                        if(checkJ >= cellCtY) break;
+                        if(cells[i][checkJ].empty) {
+                            ctr++;
+                        }
+                    }
+                    cell.onBottom = ctr / numChecks;
+
+                    // On Top
+                    ctr = 0;
+                    for(let k = 1; k <= numChecks; k++) {
+                        let checkJ = j - k;
+                        if(checkJ < 0) break;
+                        if(cells[i][checkJ].empty) {
+                            ctr++;
+                        }
+                    }
+                    cell.onTop = ctr / numChecks;
+
+                    // On Right
+                    ctr = 0;
+                    for(let k = 1; k <= numChecks; k++) {
+                        let checkI = i + k;
+                        if(checkI >= cellCtX) break;
+                        if(cells[checkI][j].empty) {
+                            ctr++;
+                        }
+                    }
+                    cell.onRight = ctr / numChecks;
+
+                    // On Left
+                    ctr = 0;
+                    for(let k = 1; k <= numChecks; k++) {
+                        let checkI = i - k;
+                        if(checkI < 0) break;
+                        if(cells[checkI][j].empty) {
+                            ctr++;
+                        }
+                    }
+                    cell.onLeft = ctr / numChecks;
+                }
+               
+            }
+
+            // Filter out empty cells and flatten
+            cells = cells.flat().filter(c => !c.empty);
+
+            allCells.push(cells);
+        }
+
+        let numFlocks = random([1, 2, 3]);
+        let flocks = [];
+
+        for(let i = 0; i < numFlocks; i++) {
+            let randIdx = floor(random(flockPosOptions.length));
+            let flockPos = flockPosOptions[randIdx];
+            let flockT = flockPos[2];
+            flockPos = [flockPos[0], flockPos[1]];
+            flocks.push([flockPos, flockT]);
+
+            // remove that index
+            flockPosOptions[randIdx] = flockPosOptions[flockPosOptions.length - 1];
+            flockPosOptions.pop();
+        }
+        flockPosOptions = []; // clear to save memory
+
+
+        noiseSeed(random()*10000);
+
+        noiseOffsetX = random() * 1000;
+        noiseOffsetY = random() * 1000;
+        cloudNoiseDetailX = 3;
+        cloudNoiseDetailY = 4;
+
+        // blendMode(HARD_LIGHT);
+
+        // calculate cell cols
+        colorMode(HSB);
+        let cloudCol = color(random(200, 400)%360, 10, 70);
+        let cloudShadowCol = random(this.skyCols.night);
+        let bRange = [75, 90];
+
+        let lightCol = day ? sunCol : moonCol;
+
+        let edgeAffectThreshold = 0.75;
+        
+        for(let cells of allCells) {
+            for(let cell of cells) {
+                let colN = noise(cell.nx * cloudNoiseDetailX + noiseOffsetX, cell.ny * cloudNoiseDetailY + noiseOffsetY, cell.t * cloudNoiseDetailZ);
+                
+                colorMode(HSB);
+                let col = color(hue(cloudCol), saturation(cloudCol), lerp(...bRange, colN));
+                colorMode(RGB);
+
+                // fog effect - further clouds slightly lerp towards sky
+                col = lerpColor(col, random(day ? this.skyCols.day : this.skyCols.night), 0.50 * (1 - cell.t));
+
+                let lightenAmt = 0;
+                let darkenAmt = 0;
+
+                if(cell.onTop > edgeAffectThreshold) {
+                    if(cell.y > solarPos[1]) lightenAmt = max(lightenAmt, cell.onTop);
+                    else darkenAmt = max(darkenAmt, cell.onTop);
+                }
+
+                if(cell.onBottom > edgeAffectThreshold) {
+                    if(cell.y < solarPos[1]) lightenAmt = max(lightenAmt, cell.onBottom);
+                    else darkenAmt = max(darkenAmt, cell.onBottom);
+                }
+
+                if(cell.onLeft > edgeAffectThreshold) {
+                    if(cell.x > solarPos[0]) lightenAmt = max(lightenAmt, cell.onLeft);
+                    else darkenAmt = max(darkenAmt, cell.onLeft);
+                }
+
+                if(cell.onRight > edgeAffectThreshold) {
+                    if(cell.x < solarPos[0]) lightenAmt = max(lightenAmt, cell.onRight);
+                    else darkenAmt = max(darkenAmt, cell.onRight);
+                }
+
+                colorMode(HSB);
+                if(lightenAmt > 0 && darkenAmt == 0) {
+                    let newBrightness = lerp(brightness(col), 100.0, (lightenAmt - edgeAffectThreshold)/(1-edgeAffectThreshold));
+                    let pullHueSat = lerpColor(col, lightCol, 0.75 * (lightenAmt - edgeAffectThreshold)/(1-edgeAffectThreshold));
+                    let newHue = hue(pullHueSat);
+                    let newSat = saturation(pullHueSat);
+                    col = color(newHue, newSat, newBrightness);
+                    
+                }
+                if(darkenAmt > 0 && lightenAmt == 0) {
+                    let newBrightness = brightness(col) * lerp(0.5, 1.0, 1 - ((darkenAmt - edgeAffectThreshold)/(1-edgeAffectThreshold)));
+                    let pullHueSat = lerpColor(col, cloudShadowCol, 0.75 * (darkenAmt - edgeAffectThreshold)/(1-edgeAffectThreshold));
+                    let newHue = hue(pullHueSat);
+                    let newSat = saturation(pullHueSat);
+                    col = color(newHue, newSat, newBrightness);
+                    // (1 - lerp(...lightStrengthRange, darkenAmt));
+                    // col = color(hue(col), saturation(col), newBrightness);
+                }
+                colorMode(RGB);
+
+                cell.col = transCol(col, lerp(0.0125, 0.1, 1 - cell.t));
+                // cell.col = col;
+            }
+        }
+
+        colorMode(RGB);
+
+        noiseSeed(random()*10000);
+
+        // calculate cloud cell shapes and render
+        noiseOffsetX = random() * 1000;
+        noiseOffsetY = random() * 1000;
+        cloudNoiseDetailX = 12;
+        cloudNoiseDetailY = 12;
+        cloudNoiseDetailZ = 10;
+
+        let cloudMaxRRange = [min(width, height)*0.05, min(width, height)*0.20];
+
+        let skipper = 100;
+        let ctr = 0;
+
+        blendMode(BLEND);
+
+
+        // let flockCt = random(3, 8);
+        // let flockRange = 0.05 * min(width, height);
+        // let flockAngle = random([0, PI]) + random(-0.1, 0.1) * PI;
+
+        flocks = flocks.sort((a, b) => a[1] - b[1]); // sort by t value so closer flocks are drawn last
+        let nextFlockT = flocks[0][1];
+
+        let birdSizeRange = [min(width, height)*0.0075, min(width, height)*0.015];        
+
+        for(let cells of allCells) {
+            if(cells[0].t >= nextFlockT) {
+                let flock = flocks.shift();
+                let flockPos = flock[0];
+                let flockT = flock[1];
+                nextFlockT = flocks.length > 0 ? flocks[0][1] : 2; // set to 2 to ensure no more flocks are drawn after this
+
+                let flockCt = random(3, 8);
+                let flockRange = 0.05 * min(width, height);
+                let flockAngle = random([0, PI]) + random(-0.1, 0.1) * PI;
+
+                // draw the flock of birds silhouettes
+                for(let i = 0; i < flockCt; i++) {
+                    let birdPos = [
+                        flockPos[0] + random(-flockRange, flockRange),
+                        flockPos[1] + random(-flockRange, flockRange),
+                    ];
+
+                    let birdSize = lerp(...birdSizeRange, flockT);
+
+                    push();
+                    translate(birdPos[0], birdPos[1]);
+                    rotate(flockAngle + random(-0.1, 0.1));
+                    fill(lerpColor(cloudShadowCol, color(10), random(0.50, 0.75)));
+                    noStroke();
+
+
+                    
+
+                    let birdWidth = birdSize * random(0.125, 0.25);
+                    let beakPos = [birdSize/2, 0];
+                    let tailPos = [-birdSize/2, 0];
+                    
+
+                    let bezAnchor1 = lerpPos(beakPos, tailPos, random(0.10, 0.40));
+                    bezAnchor1[0] += 0.50 * random(-birdWidth, birdWidth);
+                    bezAnchor1[1] += 0.50 * random(-birdWidth, birdWidth);
+
+                    let bezAnchor2 = lerpPos(beakPos, tailPos, random(0.60, 0.90));
+                    bezAnchor2[0] += 0.50 * random(-birdWidth, birdWidth);
+                    bezAnchor2[1] += 0.50 * random(-birdWidth, birdWidth);
+
+                    let topEdge = [];
+                    let bottomEdge = [];
+                    let ct = 20;
+                    for(let i = 0; i < ct; i++) {
+                        let t = i / (ct - 1);
+                        let x = bezierPoint(beakPos[0], bezAnchor1[0], bezAnchor2[0], tailPos[0], t);
+                        let y = bezierPoint(beakPos[1], bezAnchor1[1], bezAnchor2[1], tailPos[1], t);
+                        topEdge.push([x, y - birdWidth*0.5]);
+                        bottomEdge.push([x, y + birdWidth*0.5]);
+                    }
+
+                    for(let i = 0; i < ct; i++) {
+                        let t = i / (ct - 1);
+                        if (t < 0.25) {
+                            topEdge[i] = lerpPos(topEdge[i], beakPos, 1 - (t / 0.25));
+                            bottomEdge[i] = lerpPos(bottomEdge[i], beakPos, 1 - (t / 0.25));
+                        }
+                        if (t > 0.75) {
+                            topEdge[i] = lerpPos(topEdge[i], tailPos, (t - 0.75) / 0.25);
+                            bottomEdge[i] = lerpPos(bottomEdge[i], tailPos, (t - 0.75) / 0.25);
+                        }
+                    }
+
+                    beginShape();
+                    for(let pt of topEdge) {
+                        vertex(pt[0], pt[1]);
+                    }
+                    for(let i = bottomEdge.length - 1; i >= 0; i--) {
+                        vertex(bottomEdge[i][0], bottomEdge[i][1]);
+                    }
+                    endShape(CLOSE);
+
+                    let flapAmt = random() > 0.5 ? random(0, 0.33) : random(0.66, 1);
+                    let wingStartA = lerpPos([0, 0], beakPos, random(0.25, 0.40));
+                    let wingStartB = [wingStartA[0] - birdWidth, wingStartA[1]];
+                    let wingEnd = [(wingStartA[0] + wingStartB[0])/2, lerp(-birdSize, birdSize, flapAmt)];
+
+                    beginShape();
+                    vertex(wingStartA[0], wingStartA[1]);
+                    vertex(wingStartB[0], wingStartB[1]);
+                    vertex(wingEnd[0], wingEnd[1]);
+                    endShape(CLOSE);
+
+                    wingEnd[0] += random(-birdWidth, birdWidth);
+                    beginShape();
+                    vertex(wingStartA[0], wingStartA[1]);
+                    vertex(wingStartB[0], wingStartB[1]);
+                    vertex(wingEnd[0], wingEnd[1]);
+                    endShape(CLOSE);
+                    pop();
+                    
+
+                }
+            } 
+            // let g = createGraphics(width, height);
+            // g.noStroke();
+            // let ctx = g.drawingContext;
+            for(let cell of cells) {
+                let polyPtCt = round(random(10, 20));
+                let angleOffset = random(TAU);
+                let angleStep = TAU / polyPtCt;
+                let maxR = lerp(...cloudMaxRRange, cell.t);
+                let polyPts = [];
+                for(let i = 0; i < polyPtCt; i++) {
+                    let angle = angleOffset + (i * angleStep) + random(-angleStep*0.25, angleStep*0.25);
+                    
+                    let nPt = [
+                        cell.nx + cos(angle) * 0.1,
+                        cell.ny + sin(angle) * 0.1,
+                    ];
+                    let nval = noise(nPt[0] * cloudNoiseDetailX + noiseOffsetX, nPt[1] * cloudNoiseDetailY + noiseOffsetY, cell.t * cloudNoiseDetailZ);
+                    
+                    let r = maxR * nval;
+                    polyPts.push([
+                        cell.x + cos(angle) * r,
+                        cell.y + sin(angle) * r,
+                    ]);
+                }
+
+
+                let edgeAngle = 0;
+                if(cell.onTop) edgeAngle += PI/2 * cell.onTop;
+                if(cell.onBottom) edgeAngle += -PI/2 * cell.onBottom;
+                if(cell.onLeft) edgeAngle += PI * cell.onLeft;
+                if(cell.onRight) edgeAngle += -PI * cell.onRight;
+                edgeAngle = edgeAngle % TAU;
+
+                let maxDist = 0;
+                for(let i = 0; i < polyPtCt; i++) {
+                    let d = dist(...polyPts[i], cell.x, cell.y);
+                    if(d > maxDist) {
+                        maxDist = d;
+                    }
+                }
+
+                let gradStart = [
+                    cell.x + cos(edgeAngle) * maxDist,
+                    cell.y + sin(edgeAngle) * maxDist,
+                ];
+                let gradEnd = [
+                    cell.x - cos(edgeAngle) * maxDist,
+                    cell.y - sin(edgeAngle) * maxDist,
+                ];
+
+
+                // let getDist = (idx) => dist(...polyPts[idx], ...polyPts[(idx + floor(polyPtCt/2))%polyPtCt]);
+                // let maxDistIdx = 0;
+                // let maxDistFound = getDist(maxDistIdx);
+                // for(let i = 1; i < polyPtCt/2; i++) {
+                //     let d = getDist(i);
+                //     if(d > maxDistFound) {
+                //         maxDistFound = d;
+                //         maxDistIdx = i;
+                //     }
+                // }
+            
+                let col = cell.col;
+                let transparent_col = transCol(col, lerp(0, 0.0125, 1 - cell.t));
+                // let transparent_col = transCol(col, 0);
+
+                // Direct to canvas:
+                linearGradient(...gradStart, ...gradEnd, col, transparent_col);
+                beginShape();
+                for(let pt of polyPts) {
+                    vertex(pt[0], pt[1]);
+                }
+                endShape(CLOSE);
+
+
+                // To graphics buffer
+                // let gradient = ctx.createLinearGradient(
+                //     gradStart[0], gradStart[1], gradEnd[0], gradEnd[1]
+                // );
+                // gradient.addColorStop(0, col);
+                // gradient.addColorStop(1, transparent_col);
+                // ctx.fillStyle = gradient;
+                // g.beginShape();
+                // for(let pt of polyPts) {
+                //     g.vertex(pt[0], pt[1]);
+                // }
+                // g.endShape(CLOSE);
+
+                ctr += 1;
+                if(ctr % skipper == 0) {
+                    yield;
+                }
+            }
+            // image(g, 0, 0);
+            // yield;
+        }
+    }
+}
+
+// function keyPressed() {
+//     if (key === 's' || key === 'S') {
+//         saveCanvas('myCanvas', 'png');
+//     }
+// }
