@@ -11,7 +11,6 @@ function setup() {
     let now = new Date();
     let day = now.getDate();
     let month = now.getMonth() + 1;
-    // month = 4;
 
     let hours = now.getHours();
     let minutes = now.getMinutes();
@@ -829,246 +828,6 @@ class Clovers {
 
 }
 
-class Brush {
-    constructor(nBristles) {
-        this.nBristles = nBristles;
-        this.resetOffsets();
-    }
-
-    resetOffsets() {
-        this.bristleOffsets = [];
-        for (let i = 0; i < this.nBristles; i++) {
-            let offX = random(-1, 1);
-            let offY = random(-1, 1);
-            this.bristleOffsets.push([offX, offY]);
-        }
-    }
-
-    getWeight(t, pressure = 0.5) {
-        let wVal = 0;
-        if (t <= 0.1) {
-            wVal = -100 * (t - 0.1) * (t - 0.1) + 1;
-        } else {
-            wVal = -1.235 * (t - 0.1) * (t - 0.1) + 1;
-        }
-        wVal = constrain(wVal, 0.0, 1.0);
-
-        wVal = lerp(wVal, 1.0, pressure);
-
-        return wVal;
-    }
-
-    getShape(pts, size, pressure) {
-        let shapeTop = [];
-        let shapeBottom = [];
-
-        let dens = 0.01 * min(width, height);
-        let totalDist = 0;
-        for (let i = 1; i < pts.length; i++) {
-            totalDist += dist(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1]);
-        }
-        let ct = ceil(totalDist / dens);
-
-        shapeTop.push(pts[0]);
-
-        for(let i = 1; i < ct; i++) {
-            let t = i/ct;
-            let idx_0 = floor(t * (pts.length - 1));
-            let idx_1 = min(idx_0 + 1, pts.length - 1);
-            let localT = (t * (pts.length - 1)) - idx_0;
-
-            let x = lerp(pts[idx_0][0], pts[idx_1][0], localT);
-            let y = lerp(pts[idx_0][1], pts[idx_1][1], localT);
-
-            let angleBetween = atan2(pts[idx_1][1] - pts[idx_0][1], pts[idx_1][0] - pts[idx_0][0]);
-            let angleLeft = angleBetween - PI/2;
-            let angleRight = angleBetween + PI/2;
-
-            let weight = this.getWeight(t, pressure);
-            let localSize = size * weight;
-
-            let topX = x + cos(angleLeft) * localSize * 0.5;
-            let topY = y + sin(angleLeft) * localSize * 0.5;
-            let bottomX = x + cos(angleRight) * localSize * 0.5;
-            let bottomY = y + sin(angleRight) * localSize * 0.5;
-
-            shapeTop.push([topX, topY]);
-            shapeBottom.push([bottomX, bottomY]);
-        }
-
-        shapeTop.push(pts[pts.length - 1]);
-
-        shapeBottom.reverse();
-        let fullShape = shapeTop.concat(shapeBottom);
-        return fullShape;
-    }
-
-    paint(pts, size, pressure, col, spread = 1.0) {
-        this.bristleOffsets = shuffleArray(this.bristleOffsets);
-        let shape = this.getShape(pts, size, pressure);
-
-        let cols = [];
-        let darkVer = [];
-        let lightVer = [];
-        colorMode(HSB);
-        for(let i = 0; i < this.nBristles; i++) {
-            let h = (hue(col) + random(-10, 10) + 360) % 360;
-            let s = constrain(saturation(col) * random(0.9, 1.1), 0, 100);
-            let b = constrain(brightness(col) * random(0.8, 1.2), 0, 100);
-            let bristleCol = color(h, s, b);
-            cols.push(bristleCol);
-
-            darkVer.push(color(h, s, b * 0.90));
-            lightVer.push(color(h, s * 0.5, min(b * 1.1, 100)));
-        }    
-        colorMode(RGB);
-
-        noStroke();
-        for (let i = 0; i < this.nBristles; i++) {
-            let offX = this.bristleOffsets[i][0];
-            let offY = this.bristleOffsets[i][1];
-
-            let currShape = shape.map(p => [p[0] + offX*size*spread, p[1] + offY*size*spread]);
-            
-            fill(transCol(cols[i], random(0.20, 0.40)));
-            beginShape();
-
-            if (random() > 0.8) {
-                strokeWeight(0.25);
-                stroke(random([darkVer[i], lightVer[i]]));
-            } else {
-                noStroke();
-            }
-
-            for (let v of currShape) {
-                vertex(v[0], v[1]);
-            }
-            endShape(CLOSE);
-        }
-    }
-
-
-}
-
-class Garden {
-    constructor(magic) {
-        this.magic = magic;
-        this.brush = new Brush(10);
-
-
-        this.cols = {
-            "bg": color("#838261"),
-        }
-
-
-    }
-
-    *renderCell(cell) {
-        let center = cell.site;
-        let n = noise(center.x * 0.01, center.y * 0.02);
-
-        colorMode(RGB);
-        let colOptions = [
-            color("#8E8F72"),
-            color("#76A49C"),
-            color("#A0A782"),
-            color("#9BA383"),
-        ]
-
-
-        let spiralPts = [];
-        let ct = 30;
-        let nEdges = cell.halfedges.length;
-        for(let i = 0; i < ct; i++) {
-            let t = i / ct;
-            let edgePt = cell.halfedges[i%nEdges].getStartpoint();
-            spiralPts.push([
-                lerp(center.x, edgePt.x, t),
-                lerp(center.y, edgePt.y, t)
-            ]);
-        }
-
-        this.brush.paint(spiralPts, min(width, height)*0.02, 0.1, colOptions[floor(n*colOptions.length)], 0.5);
-
-        yield;
-
-        if (random() < 0.5) {
-            // Grass dashes
-
-            let grassCol = random(colOptions);
-            let nDashes = floor(random(5, 15));
-            
-            let randPos = random(spiralPts);
-
-            for(let i = 0; i < nDashes; i++) {
-                
-
-                let angle = random(TAU);
-                let len = random(min(width, height)*0.01, min(width, height)*0.03);
-                let dashPts = [];
-                dashPts.push([
-                    randPos[0] + cos(angle) * len * 0.1,
-                    randPos[1] + sin(angle) * len * 0.1,
-                ]);
-                dashPts.push([
-                    randPos[0] + cos(angle) * len,
-                    randPos[1] + sin(angle) * len,
-                ]);
-
-                this.brush.paint(dashPts, min(width, height)*0.0025, 1.0, grassCol, 1.0);
-            }
-
-        }
-
-
-
-
-
-        yield;
-    }
-
-    *render() {
-        background(this.cols.bg);
-        yield;
-
-        // Setup voronoi tiles
-        let numPts = 250;
-        let pts = [];
-        for(let i = 0; i < numPts; i++) {
-            let x = random(-0.1, 1.1) * width;
-            let y = random(-0.1, 1.1) * height;
-            pts.push({x: x, y: y});
-        }
-
-        let voronoi = new Voronoi();
-        let bbox = {xl: -width*0.1, xr: width*1.1, yt: -height*0.1, yb: height*1.1};
-        let diagram = voronoi.compute(pts, bbox);
-
-        let cellRenderers = [];
-        for(let cell of diagram.cells) {
-            let cellGen = this.renderCell(cell);
-            cellRenderers.push(cellGen);
-        }
-        cellRenderers = shuffleArray(cellRenderers);
-
-        for(let i = 0; i < cellRenderers.length; i++) {
-            cellRenderers[i].next();
-            if (i%4==0) yield;
-        }
-        yield;
-
-
-        while (cellRenderers.length > 0) {
-            for (let gen of cellRenderers) {
-                gen.next();
-            }
-            cellRenderers = cellRenderers.filter(gen => !gen.next().done);
-            yield;
-        }
-
-    }
-}
-
 class Clouds {
     constructor(dayProgress) {
         this.dayProgress = dayProgress;
@@ -1632,6 +1391,366 @@ class Clouds {
         }
     }
 }
+
+class Brush {
+    constructor(nBristles) {
+        this.nBristles = nBristles;
+        this.resetOffsets();
+    }
+
+    resetOffsets() {
+        this.bristleOffsets = [];
+        for (let i = 0; i < this.nBristles; i++) {
+            let offX = random(-1, 1);
+            let offY = random(-1, 1);
+            this.bristleOffsets.push([offX, offY]);
+        }
+    }
+
+    getWeight(t, pressure = 0.5) {
+        let wVal = 0;
+        if (t <= 0.1) {
+            wVal = -100 * (t - 0.1) * (t - 0.1) + 1;
+        } else {
+            wVal = -1.235 * (t - 0.1) * (t - 0.1) + 1;
+        }
+        wVal = constrain(wVal, 0.0, 1.0);
+
+        wVal = lerp(wVal, 1.0, pressure);
+
+        return wVal;
+    }
+
+    getShape(pts, size, pressure) {
+        let shapeTop = [];
+        let shapeBottom = [];
+
+        let dens = 0.01 * min(width, height);
+        let totalDist = 0;
+        for (let i = 1; i < pts.length; i++) {
+            totalDist += dist(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1]);
+        }
+        let ct = ceil(totalDist / dens);
+
+        shapeTop.push(pts[0]);
+
+        for(let i = 1; i < ct; i++) {
+            let t = i/ct;
+            let idx_0 = floor(t * (pts.length - 1));
+            let idx_1 = min(idx_0 + 1, pts.length - 1);
+            let localT = (t * (pts.length - 1)) - idx_0;
+
+            let x = lerp(pts[idx_0][0], pts[idx_1][0], localT);
+            let y = lerp(pts[idx_0][1], pts[idx_1][1], localT);
+
+            let angleBetween = atan2(pts[idx_1][1] - pts[idx_0][1], pts[idx_1][0] - pts[idx_0][0]);
+            let angleLeft = angleBetween - PI/2;
+            let angleRight = angleBetween + PI/2;
+
+            let weight = this.getWeight(t, pressure);
+            let localSize = size * weight;
+
+            let topX = x + cos(angleLeft) * localSize * 0.5;
+            let topY = y + sin(angleLeft) * localSize * 0.5;
+            let bottomX = x + cos(angleRight) * localSize * 0.5;
+            let bottomY = y + sin(angleRight) * localSize * 0.5;
+
+            shapeTop.push([topX, topY]);
+            shapeBottom.push([bottomX, bottomY]);
+        }
+
+        shapeTop.push(pts[pts.length - 1]);
+
+        shapeBottom.reverse();
+        let fullShape = shapeTop.concat(shapeBottom);
+        return fullShape;
+    }
+
+    paint(pts, size, pressure, col, spread = 1.0) {
+        this.bristleOffsets = shuffleArray(this.bristleOffsets);
+        let shape = this.getShape(pts, size, pressure);
+
+        let cols = [];
+        let darkVer = [];
+        let lightVer = [];
+        colorMode(HSB);
+        for(let i = 0; i < this.nBristles; i++) {
+            let h = (hue(col) + random(-10, 10) + 360) % 360;
+            let s = constrain(saturation(col) * random(0.9, 1.1), 0, 100);
+            let b = constrain(brightness(col) * random(0.8, 1.2), 0, 100);
+            let bristleCol = color(h, s, b);
+            cols.push(bristleCol);
+
+            darkVer.push(color(h, s, b * 0.90));
+            lightVer.push(color(h, s * 0.5, min(b * 1.1, 100)));
+        }    
+        colorMode(RGB);
+
+        noStroke();
+        for (let i = 0; i < this.nBristles; i++) {
+            let offX = this.bristleOffsets[i][0];
+            let offY = this.bristleOffsets[i][1];
+
+            let currShape = shape.map(p => [p[0] + offX*size*spread, p[1] + offY*size*spread]);
+            
+            fill(transCol(cols[i], random(0.20, 0.40)));
+            beginShape();
+
+            if (random() > 0.9) {
+                strokeWeight(0.25);
+                stroke(random([darkVer[i], lightVer[i]]));
+            } else {
+                noStroke();
+            }
+
+            for (let v of currShape) {
+                vertex(v[0], v[1]);
+            }
+            endShape(CLOSE);
+        }
+    }
+
+
+}
+
+class Garden {
+    constructor(magic) {
+        this.magic = magic;
+        this.brush = new Brush(10);
+
+
+        push();
+        colorMode(HSB);
+        this.cols = {
+            "bg": color(random(360), 30, 30),
+        }
+        pop();
+
+    }
+
+    *renderCell(cell) {
+        let center = cell.site;
+        console.log(cell)
+        let n = noise(center.x * 0.01, center.y * 0.02);
+
+        let size_approx = 0;
+        let sampleSizeCt = min(cell.halfedges.length, 10);
+        for(let i = 0; i < sampleSizeCt; i++) {
+            console.log(cell.halfedges[i].edge)
+            let a = cell.halfedges[i].edge.lSite;
+            let b = cell.halfedges[i].edge.rSite;
+            if(a == null || b == null) {
+                sampleSizeCt -= 1;
+                continue;
+            }
+            let edgeDist = dist(a.x, a.y, b.x, b.y);
+            size_approx += edgeDist;
+        }
+
+        size_approx = size_approx / sampleSizeCt;
+
+
+        colorMode(RGB);
+        let colOptions = [
+            color("#2a5f2d"),
+            color("#658436"),
+            color("#9dae33"),
+            color("#44580f"),
+        ];
+        let flowerColOptions = [
+            color("#e49c9c"),
+            color("#fbb26d"),
+            color("#e15b64"),
+            color("#fff8f0"),
+            // color("#dff2e1"),
+            color("#f6fe7d"),
+            // color("#7e6ffd")
+        ]
+
+
+        let spiralPts = [];
+        let ct = 25;
+        let nEdges = cell.halfedges.length;
+        for(let i = 0; i < ct; i++) {
+            let t = i / ct;
+            let edgePt = cell.halfedges[i%nEdges].getStartpoint();
+            spiralPts.push([
+                lerp(center.x, edgePt.x, t),
+                lerp(center.y, edgePt.y, t)
+            ]);
+        }
+
+        spiralPts = chaikin(spiralPts, 1);
+
+        let c = random(colOptions);
+        this.brush.paint(spiralPts, min(width, height)*0.03, 0.1, c, random(0.25, 0.375));
+
+        if(random() > 0.25) {     
+            colorMode(HSB);       
+            c = color(hue(c), saturation(c), brightness(c) * 1.5);
+
+            this.brush.paint(spiralPts, min(width, height)*0.02, 0.05, c, random(0.125, 0.25));
+
+
+
+        }
+
+        yield;
+
+
+        let flowerChance = map(n, 0.1, 0.9, 0, 1, true) / 3;
+
+
+        if (random() < flowerChance) {
+            // Flowers
+
+            if(center[0] < 0 || center[0] > width || center[1] < 0 || center[1] > height) {
+                // if the center is out of bounds, skip the flower to avoid weird rendering issues
+                return;
+            }
+
+
+            let flowerCol = random(flowerColOptions);
+            let nPetals = floor(random(25, 50));
+            
+            let randPos = random(spiralPts);
+
+
+
+
+            // let petalLenRange = [min(width, height)*0.03, min(width, height)*0.08];
+            // let petalWidthRange = [min(width, height)*0.005, min(width, height)*0.015];
+
+            let petalLenRange = [size_approx * 0.90, size_approx * 1.10];
+            let petalWidthRange = [size_approx * 0.10, size_approx * 0.20];
+
+
+            for(let i = 0; i < nPetals; i++) {
+                
+                let angle = (i/(nPetals-1)) * TAU + random(-0.1, 0.1) * TAU;
+
+                let len = random(...petalLenRange);
+                let dashPts = [];
+                let start = [
+                    randPos[0] + cos(angle) * len * 0.1,
+                    randPos[1] + sin(angle) * len * 0.1,
+                ];
+                let end = [
+                    randPos[0] + cos(angle) * len,
+                    randPos[1] + sin(angle) * len,
+                ];
+
+                let res = 0.005 * min(width, height);
+                let ct = ceil(len/res);
+
+                for(let i = 0; i < ct; i++) {
+                    let t = i / (ct -1);
+                    let p = lerpPos(start, end, t);
+                    let n = noise(p[0] * 0.01, p[1] * 0.01);
+                    let offAngle = n* TAU;
+                    p[0] += cos(offAngle) * res;
+                    p[1] += sin(offAngle) * res;
+                    dashPts.push(p);
+                }
+
+                this.brush.paint(dashPts, random(...petalWidthRange), 1.0, flowerCol, random(0.125, 0.25));
+            }
+
+
+            let flowerCenterCol = random([...colOptions, ...flowerColOptions]);
+
+            let centerR = random(petalWidthRange);
+            let centerPts = [];
+            let centerCt = 30;
+            // small spiral for flower center
+            for(let i = 0; i < centerCt; i++) {
+                let t = i / centerCt;
+                centerPts.push([
+                    randPos[0] + cos(t * TAU) * centerR * t,
+                    randPos[1] + sin(t * TAU) * centerR * t,
+                ]);
+                
+            }
+
+            this.brush.paint(centerPts, centerR, 1.0, flowerCenterCol, random(0.125, 0.25));
+
+
+
+        }
+
+
+
+
+
+        yield;
+    }
+
+    *render() {
+        background(this.cols.bg);
+        yield;
+
+        colorMode(HSB);
+
+        // Setup voronoi tiles
+        let pts = [];
+
+        let cellRes = 0.075 * min(width, height);
+        let cellCtX = ceil(width / cellRes);
+        let cellCtY = ceil(height / cellRes);
+
+        // grid based sampling
+        for(let i = 0; i < cellCtX; i++) {
+            let tx = lerp(i/(cellCtX-1), (i+1)/(cellCtX-1), random());
+            let cartX = width * tx;
+            for(let j = 0; j < cellCtY; j++) {
+                let ty = lerp(j/(cellCtY-1), (j+1)/(cellCtY-1), random());
+                let cartY = height * ty;
+                pts.push({x: cartX, y: cartY});
+            }
+        }
+
+        // let pts = [];
+        // for(let i = 0; i < numPts; i++) {
+        //     let x = random(-0.1, 1.1) * width;
+        //     let y = random(-0.1, 1.1) * height;
+        //     pts.push({x: x, y: y});
+        // }
+
+        let voronoi = new Voronoi();
+        let bbox = {xl: -width*0.1, xr: width*1.1, yt: -height*0.1, yb: height*1.1};
+        let diagram = voronoi.compute(pts, bbox);
+
+        let cellRenderers = [];
+        for(let cell of diagram.cells) {
+            let cellGen = this.renderCell(cell);
+            cellRenderers.push(cellGen);
+        }
+        cellRenderers = shuffleArray(cellRenderers);
+
+        let skipper = 10;
+
+        for(let i = 0; i < cellRenderers.length; i++) {
+            cellRenderers[i].next();
+            if (i%skipper==0) yield;
+        }
+        yield;
+
+
+        let ctr = 0;
+        while (cellRenderers.length > 0) {
+            for (let gen of cellRenderers) {
+                gen.next();
+                ctr += 1;
+                if(ctr % skipper == 0) yield;
+            }
+            cellRenderers = cellRenderers.filter(gen => !gen.next().done);
+            yield;
+        }
+
+    }
+}
+
+
 
 // function keyPressed() {
 //     if (key === 's' || key === 'S') {
