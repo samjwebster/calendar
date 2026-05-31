@@ -11,7 +11,7 @@ function setup() {
     let now = new Date();
     let day = now.getDate();
     let month = now.getMonth() + 1;
-    month = 6;
+    // month = 6;
 
     let hours = now.getHours();
     let minutes = now.getMinutes();
