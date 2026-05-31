@@ -121,12 +121,21 @@ function transCol(col, t) {
     return color(red(col), green(col), blue(col), 255*t);
 }
 
-function chaikin(pts, iterations, threshold=0) {
+function chaikin(pts, iterations, closed=false, threshold=0) {
     for (let iter = 0; iter < iterations; iter++) {
         let tmp = [];
         for (let i = 0; i < pts.length-1; i++) {
             let a = pts[i];
             let b = pts[i+1];
+            if(dist(...a, ...b) < threshold) continue;
+            let q = [0.75*a[0]+0.25*b[0], 0.75*a[1]+0.25*b[1]];
+            let r = [0.25*a[0]+0.75*b[0], 0.25*a[1]+0.75*b[1]];
+            tmp.push(q);
+            tmp.push(r);
+        }
+        if(closed) {
+            let a = pts[pts.length-1];
+            let b = pts[0];
             if(dist(...a, ...b) < threshold) continue;
             let q = [0.75*a[0]+0.25*b[0], 0.75*a[1]+0.25*b[1]];
             let r = [0.25*a[0]+0.75*b[0], 0.25*a[1]+0.75*b[1]];

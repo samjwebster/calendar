@@ -11,6 +11,7 @@ function setup() {
     let now = new Date();
     let day = now.getDate();
     let month = now.getMonth() + 1;
+    month = 6;
 
     let hours = now.getHours();
     let minutes = now.getMinutes();
@@ -37,6 +38,9 @@ function setup() {
         renderGen = c.render();
     } else if (month == 5) {
         let c = new Garden(dayProgress);
+        renderGen = c.render();
+    } else if (month == 6) {
+        let c = new Fish(dayProgress);
         renderGen = c.render();
     } else {
         background('red');
@@ -1750,6 +1754,256 @@ class Garden {
     }
 }
 
+class Fish {
+    constructor(magic) {
+        this.magic = magic;
+
+        this.isDay = magic > 0.25 && magic < 0.75;
+        this.bgCols = {
+            "day": [ // bright aquatic
+                color("#0f5e9c"),
+                color("#2389da"),
+                color("#1ca3ec"),
+                color("#5abcd8"),
+                color("#74ccf4")
+            ],
+            "night": [ // ocean, murkier
+                color("#001a33"),
+                color("#003366"),
+                color("#004080"),
+                color("#0059b3"),
+                color("#0066cc")
+            ]
+        }
+
+
+        this.fishCols = [];
+        push();
+        colorMode(HSB);
+        for(let i = 0; i < 12; i++) {
+            let h = i/12 * 360;
+            this.fishCols.push(color(h, random(60, 80), random(70, 90)));
+        }
+        pop();
+
+        this.generate();
+    }
+
+    renderBackground() {
+
+        // horizontally spanning series of sine wave bands
+        let colTop = this.isDay ? random(this.bgCols.day) : random(this.bgCols.night);
+        let colBottom = colTop;
+        while(colBottom === colTop) {
+            colBottom = this.isDay ? random(this.bgCols.day) : random(this.bgCols.night);
+        }
+
+        let accent = random(this.fishCols);
+
+        if(brightness(colBottom) > brightness(colTop)) {
+            let temp = colTop;
+            colTop = colBottom;
+            colBottom = temp;
+        }
+
+        background(colTop);
+        
+        let bandSz = random(0.05, 0.15) * min(width, height);
+        let bandCt = ceil(height / bandSz) + 1;
+
+        let bands = [];
+
+        for(let i = 0; i < bandCt; i++) {
+            let y_bot = i * bandSz;
+            let y_top = y_bot + bandSz;
+
+            let band_bottom_edge = [];
+            let band_top_edge = [];
+
+            let xStep = 0.01 * min(width, height);
+            for(let x = 0; x <= width; x += xStep) {
+                let yOff = sin(x * 0.05) * bandSz * 0.25;
+                band_bottom_edge.push([x, y_bot + yOff]);
+                band_top_edge.push([x, y_top + yOff]);
+            }
+
+            bands.push({
+                bottom_edge: band_bottom_edge,
+                top_edge: band_top_edge,
+            });
+        }
+
+        push();
+        this.enableDropShadow();
+
+        noStroke();
+
+        // two passes - first odd then even
+        for(let i = 0; i < bands.length; i++) {
+            if(i % 2 == 0) continue;
+            let band = bands[i];
+            fill(
+                lerpColor(
+                    lerpColor(colTop, colBottom, i / bandCt),
+                    accent, 0.05
+                )
+            );
+            
+            beginShape();
+            for(let pt of band.bottom_edge) {
+                vertex(pt[0], pt[1]);
+            }
+            for(let j = band.top_edge.length - 1; j >= 0; j--) {
+                let pt = band.top_edge[j];
+                vertex(pt[0], pt[1]);
+            }
+            endShape(CLOSE);
+        }
+        for(let i = 0; i < bands.length; i++) {
+            if(i % 2 == 1) continue;
+            let band = bands[i];
+            fill(lerpColor(colTop, colBottom, i / bandCt));
+            beginShape();
+            for(let pt of band.bottom_edge) {
+                vertex(pt[0], pt[1]);
+            }
+            for(let j = band.top_edge.length - 1; j >= 0; j--) {
+                let pt = band.top_edge[j];
+                vertex(pt[0], pt[1]);
+            }
+            endShape(CLOSE);    
+        }
+
+        this.disableDropShadow();
+        pop();
+
+    }
+
+    generate() {
+
+        let numFish = 200;
+        this.fishSzRange = [min(width,height)*0.05, min(width,height)*0.15];
+        this.fishPositions = getPositions(numFish, this.fishSzRange);
+    }
+
+    enableDropShadow() {
+        drawingContext.shadowColor = color(0, 0, 0, 50);
+        drawingContext.shadowOffsetX = 0.01 * min(width, height);
+        drawingContext.shadowOffsetY = 0.01 * min(width, height);
+        drawingContext.shadowBlur = 3; 
+    }
+
+    disableDropShadow() {
+        drawingContext.shadowColor = 'transparent';
+        drawingContext.shadowOffsetX = 0;
+        drawingContext.shadowOffsetY = 0;
+        drawingContext.shadowBlur = 0; 
+    }
+
+    renderFish(pos) {
+        let n = noise(pos[0] * 0.005, pos[1] * 0.005);
+        let a = lerp(0, TAU, n);
+        let sz = random(...this.fishSzRange);
+
+        let tail_t = random(0.80, 1.0);
+        let tail_in_amt = random(0.05, 0.20);
+        let body_t = random(0.5, 1.1);
+
+
+        let eye_r = sz * random(0.05, 0.10);
+        let pupil_t = random(0.25, 0.95);
+
+        push();
+        translate(pos[0], pos[1]);
+        rotate(a);
+        let bodyCol = random(this.fishCols);
+        fill(bodyCol);
+        // stroke(random(this.fishCols));
+        // strokeWeight(0.0025 * min(width, height));
+        noStroke();
+
+        this.enableDropShadow();
+
+        let fishPath = [
+            [-sz/2, 0], // Nose
+            [-sz/2 + sz*(tail_t/2), sz/4 * body_t], // Top main body
+            [-sz/2 + sz*(tail_t), sz/4 * tail_in_amt], // end of body in, start of tail
+            [sz/2, sz/4 * body_t], // top tail
+            [sz/2, -sz/4 * body_t], // bottom tail
+            [-sz/2 + sz*(tail_t), -sz/4 * tail_in_amt], // end of body in, start of tail
+            [-sz/2 + sz*(tail_t/2), -sz/4 * body_t], // bottom main body
+            [-sz/2, 0] // back to nose
+        ];
+        fishPath = chaikin(fishPath, 3, true);
+
+        beginShape();
+        for(let pt of fishPath) {
+            vertex(pt[0], pt[1]);
+        }
+        endShape(CLOSE);
+
+        this.disableDropShadow();
+
+        fill(255);
+        circle(-sz/4, 0, eye_r*2);
+
+        fill(0);
+        circle(-sz/4, 0, eye_r*2*pupil_t);
+
+
+        noFill();
+        let strokeCol = random(this.fishCols);
+        strokeCol = lerpColor(strokeCol, bodyCol, 0.5);
+        stroke(strokeCol);
+        strokeWeight(0.0025 * min(width, height));
+        beginShape();
+        for(let pt of fishPath) {
+            vertex(pt[0], pt[1]);
+        }
+        endShape(CLOSE);
+
+        noStroke();
+
+        
+        pop();
+
+
+    }
+
+    *render() {
+        this.renderBackground();
+        yield;
+
+        let skipper = 25;
+        let ctr = 0;
+        for(let pos of this.fishPositions) {
+            this.renderFish(pos);
+            ctr += 1;
+            if (ctr % skipper == 0) {
+                yield;
+            }
+
+            if(random() > 0.90) {
+                // Bubble
+                push();
+                this.enableDropShadow();
+                let tint = random(this.fishCols);
+                let bubbleCol = lerpColor(color('white'), tint, 0.2);
+                stroke(bubbleCol);
+                fill(transCol(bubbleCol, 0.2));
+                strokeWeight(0.0025 * min(width, height));
+                let bubblePos = [
+                    random() * width, random() * height
+                ];
+                circle(bubblePos[0], bubblePos[1], random(0.01, 0.05) * min(width, height));
+                this.disableDropShadow();
+                pop();
+            }
+        }
+    }
+
+}
+
 
 
 // function keyPressed() {
@@ -1757,3 +2011,4 @@ class Garden {
 //         saveCanvas('myCanvas', 'png');
 //     }
 // }
+
