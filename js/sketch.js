@@ -11,7 +11,6 @@ function setup() {
     let now = new Date();
     let day = now.getDate();
     let month = now.getMonth() + 1;
-    // month = 6;
 
     let hours = now.getHours();
     let minutes = now.getMinutes();
@@ -41,6 +40,9 @@ function setup() {
         renderGen = c.render();
     } else if (month == 6) {
         let c = new Fish(dayProgress);
+        renderGen = c.render();
+    } else if (month == 7) {
+        let c = new Fireworks(dayProgress);
         renderGen = c.render();
     } else {
         background('red');
@@ -2004,11 +2006,141 @@ class Fish {
 
 }
 
+class Fireworks {
+    constructor(magic) {
+        this.magic = magic;
+
+        this.activeParticles = [];
+
+        let numFireworks = 25;
+        colorMode(HSB);
+        for(let i = 0; i < numFireworks; i++) {
+            let col = color(random() * 360, 90, 90);
+            let pos = [random(0.05, 0.95) * width, random(0.05, 0.95) * height];
+
+            let delay = random(100);
+            let lifespan = random(50, 100);
+            let type = random(["star", "star", "burst", "cloud"]);
+            let radius = random(0.005, 0.01) * min(width, height);
+            let speed = random(0.25, 0.75) * min(width, height) * 0.01;
+            
+            let numPoints = round(random(5, 12))
+            let aOffset = random() * TAU;
+
+            if(type == "cloud") {
+                lifespan *= 0.5;
+                speed *= 0.75;
+                radius *= 3;
+                numPoints *= 1.5;
+            }
+
+            if(type == "burst") {
+                lifespan *= 0.33;
+                speed *= 1.25,
+                radius *= 0.8;
+                numPoints *= 2;
+            }
+
+            for(let j = 0; j < numPoints; j++) {
+                let a = aOffset + j/numPoints * TAU;
+                let particle = {
+                    "type": type,
+                    "pos": [pos[0] + cos(a), pos[1] + sin(a)],
+                    "vel": [cos(a) * speed, sin(a) * speed],
+                    "acc": [0, 0.00005 * min(width, height)],
+                    "col": col,
+                    "delay": delay,
+                    "lifespan": lifespan,
+                    "maxLifespan": lifespan,
+                    "radius": radius
+                }
+                this.activeParticles.push(particle);
+            }
+            
+        }
+    }
+
+    *render() {
+        let skyCol = color(random(["#040409","#050e39"]))
+        background(skyCol);
+        yield;
+
+        // stars
+        noStroke();
+        let starCt = 750;
+        for(let i = 0; i < starCt; i++) {
+            fill(color(random()*360, 15, random(93, 99)));
+            let r = random(0.001, 0.002) * min(width, height);
+            circle(random() * width, random() * height, r);
+        }
+        
+
+        colorMode(RGB);
+
+        while(this.activeParticles.length > 0) {
+            let newParticles = [];
+
+            for(let particle of this.activeParticles) {
+                if(particle.delay > 0) {
+                    particle.delay -= 1;
+                    newParticles.push(particle);
+                    continue;
+                }
+
+                particle.pos[0] += particle.vel[0];
+                particle.pos[1] += particle.vel[1];
+                particle.vel[0] += particle.acc[0];
+                particle.vel[1] += particle.acc[1];
+
+                let lifeT = particle.lifespan / particle.maxLifespan;
+                console.log(lifeT);
 
 
-// function keyPressed() {
-//     if (key === 's' || key === 'S') {
-//         saveCanvas('myCanvas', 'png');
-//     }
-// }
+                let r = lifeT * random(0.5, 1.5) * particle.radius;
+                
+                if(particle.type == "burst") {
+                    r = lifeT * random(0.80, 1.20) * particle.radius;
+                }
 
+
+                let colT = color(
+                    red(particle.col),
+                    green(particle.col),
+                    blue(particle.col),
+                    0
+                )
+
+                let maxAlpha = 175;
+                if(particle.type == "cloud") maxAlpha = 75;
+                if(particle.type == "burst") maxAlpha = 220;
+                let whiteT = color(255, maxAlpha * lifeT);
+                noStroke();
+
+                if(particle.type == "star" || particle.type == "burst") {
+                    radialGradient(...particle.pos, 0, ...particle.pos, r, whiteT, colT);
+                    circle(particle.pos[0], particle.pos[1], r*2);
+                } else if(particle.type == "cloud") {
+                    let nSubPts = random(3, 6);
+                    for(let i = 0; i < nSubPts; i++) {
+                        let a = random() * TAU;
+                        let subPos = [
+                            particle.pos[0] + cos(a) * r * random(0.5, 1.0),
+                            particle.pos[1] + sin(a) * r * random(0.5, 1.0)
+                        ];
+                        let subR = r * random(0.1, 0.25);
+                        radialGradient(...subPos, 0, ...subPos, subR, whiteT, colT);
+                        circle(subPos[0], subPos[1], subR*2);
+                    }
+                }
+                
+                particle.lifespan -= 1;
+                if(particle.lifespan > 0) {
+                    newParticles.push(particle);
+                }
+            }
+
+            this.activeParticles = newParticles;
+            yield;
+        }
+    }
+}

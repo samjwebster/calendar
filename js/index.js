@@ -164,3 +164,11 @@ function generateQuote() {
 generateGreeting();
 generateDateTime();
 generateQuote();
+
+let now = new Date();
+let month = now.getMonth() + 1;
+console.log("month", month);
+if(month == 7) {
+    let contentDiv = document.getElementById("contents");
+    contentDiv.style.backgroundColor = "#ffffff66";
+}
