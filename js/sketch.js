@@ -44,6 +44,9 @@ function setup() {
     } else if (month == 7) {
         let c = new Fireworks(dayProgress);
         renderGen = c.render();
+    } else if (month == 8) {
+        let c = new August(dayProgress);
+        renderGen = c.render();
     } else {
         background('red');
     }
@@ -85,7 +88,7 @@ function getPositions(num, sizeRange, failThreshold = 1000) {
     return positions;
 }
 
-function gradientBackground(bgCols, accentCols) {
+function gradientBackground(bgCols, accentCols, g=null) {
     for(let i = 0; i < 3; i++) {
         let randomDir = random() * TAU;
 
@@ -98,10 +101,20 @@ function gradientBackground(bgCols, accentCols) {
         col1 = transCol(col1, random());
         col2 = transCol(col2, random());
 
-        linearGradient(...pos1, ...pos2, col1, col2);
-        noStroke();
-        blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
-        rect(0, 0, width, height);
+        if(g != null) {
+            // If we are using a graphics buffer, we need to use the graphics context to create the gradient
+            let gradient = linearGradient(...pos1, ...pos2, col1, col2, true);
+            g.drawingContext.fillStyle = gradient;
+            g.noStroke();
+            g.blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
+            g.rect(0, 0, width, height);
+        } else {
+            linearGradient(...pos1, ...pos2, col1, col2);
+            noStroke();
+            blendMode(random([BLEND, MULTIPLY, SCREEN, OVERLAY, HARD_LIGHT]));
+            rect(0, 0, width, height);
+        }
+        
     }
     blendMode(BLEND);
 }
@@ -2140,6 +2153,96 @@ class Fireworks {
             }
 
             this.activeParticles = newParticles;
+            yield;
+        }
+    }
+}
+
+class August {
+    constructor(magic) {
+        this.magic = magic;
+        this.aliveElems = [];
+        this.deadElems = [];
+        this.deacceleration = 0.99;
+        this.backgroundGraphic = createGraphics(width, height);
+        this.nDetail = 0.02;
+        this.setup();
+    }
+
+    setup() {
+        let emojis = ['🎒', '📚', '🚌', '🚎', '🏫', '📖', '📓', '🎓', '✏️', '✒️', '📐', '📎', '🍎', '🎓', '🤓'];
+        let numElems = 200;
+        for(let i = 0; i < numElems; i++) {
+            let z = floor(random(emojis.length));
+            let emoji = emojis[z];
+            let x = random(width);
+            let y = random(height);
+            let size = random(32, 64);
+            let speed = random(1, 10);
+            let dir = random() * TAU;
+           this.aliveElems.push({emoji, x, y, z, size, speed, dir});
+        }
+
+        textAlign(CENTER, CENTER);
+        textSize(48);
+
+        let cols = [
+            color("#EAB96B"),
+            color("#F4A7B3"),
+            color("#1A5DC8"),
+            color("#C8102E"),
+            // color("#4A4E54"),
+            color("beige"),
+        ];
+        cols = shuffleArray(cols);
+        let mainCols = [cols[0], cols[1], cols[2]];
+        let accCols = [cols[3], cols[4]];
+
+
+
+        gradientBackground(mainCols, accCols, this.backgroundGraphic);
+    }
+
+    update() {
+        let newAliveElems = [];
+        for(let elem of this.aliveElems) {
+            elem.x += elem.speed * cos(elem.dir);
+            elem.y += elem.speed * sin(elem.dir);
+
+            elem.speed *= this.deacceleration;
+
+            elem.dir = lerp(elem.dir, noise(elem.x * this.nDetail, elem.y * this.nDetail, elem.z) * TAU + random(-0.1, 0.1), 0.1);
+
+            if(elem.x < -elem.size) elem.x = width + elem.size;
+            if(elem.x > width + elem.size) elem.x = -elem.size;
+            if(elem.y < -elem.size) elem.y = height + elem.size;
+            if(elem.y > height + elem.size) elem.y = -elem.size;
+
+            if(abs(elem.speed) > 0.025) {
+                newAliveElems.push(elem);
+            } else {
+                this.deadElems.push(elem);
+            }
+        }
+
+        this.aliveElems = newAliveElems;
+    }
+
+
+    *render() {
+        while(this.aliveElems.length > 0) {
+
+            this.update();
+            image(this.backgroundGraphic, 0, 0);
+
+            for(let elem of this.deadElems) {
+                text(elem.emoji, elem.x, elem.y);
+            }
+
+            for(let elem of this.aliveElems) {
+                text(elem.emoji, elem.x, elem.y);
+            }
+
             yield;
         }
     }

@@ -145,6 +145,20 @@ function generateQuote() {
         }, {
             "text": "I am a unique and valuable person, and I will celebrate my individuality.",
             "author": "Sam Webster"
+        },
+
+        // School manifestations
+        {
+            "text": "I am a diligent and focused student, and I will excel in my studies.",
+            "author": "Sam Webster"
+        },
+        {
+            "text": "I is the smartest there ever there was.",
+            "author": "Sam Webster"
+        },
+        {
+            "text": "my Mamma is the best studente.",
+            "author": "eeves ladybug"
         }
         
     ]   
