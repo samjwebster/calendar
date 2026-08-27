@@ -47,6 +47,9 @@ function setup() {
     } else if (month == 8) {
         let c = new August(dayProgress);
         renderGen = c.render();
+    } else if( month == 9) {
+        let c = new September(dayProgress);
+        renderGen = c.render();
     } else {
         background('red');
     }
@@ -2178,7 +2181,7 @@ class August {
             let x = random(width);
             let y = random(height);
             let size = random(32, 64);
-            let speed = random(1, 10);
+            let speed = random(1, 5);
             let dir = random() * TAU;
            this.aliveElems.push({emoji, x, y, z, size, speed, dir});
         }

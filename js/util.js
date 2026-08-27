@@ -55,6 +55,15 @@ function linearGradient(sX, sY, eX, eY, colorS, colorE, returnGradient = false) 
     else drawingContext.fillStyle = gradient;
 }
 
+function linearStroke(start, end, start_col, end_col){
+    let gradient = drawingContext.createLinearGradient(
+      ...start, ...end
+    );
+    gradient.addColorStop(0, start_col);
+    gradient.addColorStop(1, end_col);
+    drawingContext.strokeStyle = gradient;
+}
+
 function radialGradient(sX, sY, sR, eX, eY, eR, colorS, colorE){
     let gradient = drawingContext.createRadialGradient(
         sX, sY, sR, eX, eY, eR
