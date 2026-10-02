@@ -50,6 +50,9 @@ function setup() {
     } else if( month == 9) {
         let c = new September(dayProgress);
         renderGen = c.render();
+    } else if (month == 10) {
+        let c = new October(dayProgress);
+        renderGen = c.render();
     } else {
         background('red');
     }
@@ -62,34 +65,80 @@ function draw() {
     }
 }
 
-function getPositions(num, sizeRange, failThreshold = 1000) {
+// function getPositions(num, sizeRange, failThreshold = 1000) {
+//     let positions = [];
+//     let failedAttempts = 0;
+
+//     let baseSpacingFactor = 0.3; // base spacing factor
+//     let currentSpacingFactor = baseSpacingFactor; // current spacing factor
+//     let incrementRate = 0.05;
+
+//     while (positions.length < num && failedAttempts < failThreshold) {
+//         let x = random(width);
+//         let y = random(height);
+//         let size = random(...sizeRange);
+
+//         // check for overlap with existing positions
+//         let overlapping = false;
+//         for (let pos of positions) {
+//             let d = dist(x, y, pos[0], pos[1]);
+//             if (d < (size + pos[2]) * currentSpacingFactor) { // 0.6 is a spacing factor
+//                 overlapping = true;
+//                 break;
+//             }
+//         }
+
+//         if (!overlapping) {
+//             positions.push([x, y, size]);
+//             // reset spacing factor after a successful placement
+//             currentSpacingFactor = baseSpacingFactor;
+//         } else {
+//             failedAttempts++;
+//             currentSpacingFactor -= incrementRate; // increase spacing factor after a failed attempt
+//         }
+//     }
+
+//     return positions;
+// }
+
+function getPositions(num, sizeRange) {
     let positions = [];
-    let failedAttempts = 0;
+    let attemptsPer = 10;
+    for(let i = 0; i < num; i++) {
+        let nonOverlappingPos = null;
+        let currPositions = [];
+        for(let j = 0; j < attemptsPer; j++) {
+            let x = random(width);
+            let y = random(height);
+            let size = random(...sizeRange);
 
-    while (positions.length < num && failedAttempts < failThreshold) {
-        let x = random(width);
-        let y = random(height);
-        let size = random(...sizeRange);
-
-        // check for overlap with existing positions
-        let overlapping = false;
-        for (let pos of positions) {
-            let d = dist(x, y, pos[0], pos[1]);
-            if (d < (size + pos[2]) * 0.3) { // 0.6 is a spacing factor
-                overlapping = true;
-                break;
+            // check for overlap with existing positions
+            let ctOverlapping = 0;
+            for (let pos of positions) {
+                let d = dist(x, y, pos[0], pos[1]);
+                if (d < (size + pos[2]) * 0.3) {
+                    ctOverlapping++;
+                    size = max(size * 0.9, sizeRange[0]); // reduce size to try to fit
+                }
             }
-        }
 
-        if (!overlapping) {
-            positions.push([x, y, size]);
+            if (ctOverlapping == 0) {
+                nonOverlappingPos = [x, y, size];
+                break;
+            } 
+            currPositions.push([[x, y, size], ctOverlapping]);
+        }
+        if (nonOverlappingPos) {
+            positions.push(nonOverlappingPos);
         } else {
-            failedAttempts++;
+            // take the position with the least overlap
+            currPositions.sort((a, b) => a[1] - b[1]);
+            positions.push(currPositions[0][0]);
         }
     }
-
     return positions;
 }
+
 
 function gradientBackground(bgCols, accentCols, g=null) {
     for(let i = 0; i < 3; i++) {
@@ -2201,8 +2250,6 @@ class August {
         let mainCols = [cols[0], cols[1], cols[2]];
         let accCols = [cols[3], cols[4]];
 
-
-
         gradientBackground(mainCols, accCols, this.backgroundGraphic);
     }
 
@@ -2248,5 +2295,182 @@ class August {
 
             yield;
         }
+    }
+}
+
+class October {
+    constructor(magic) {
+        this.magic = magic;
+        this.leafColors = [
+            color('#6B1D14'), // Deep Crimson Maple
+            color('#903C31'), // Rich Terracotta Red
+            color('#C85A17'), // Burnt Orange
+            color('#E39D69'), // Vibrant Pumpkin
+            color('#F4B251'), // Warm Ochre Yellow
+            color('#FEDA24'), // Bright Aspen Gold
+            color('#A09A3F'), // Transitioning Amber-Green
+            color('#75890C'), // Deep Mossy Olive
+            color('#4E5C06')  // Dark Woodland Green
+        ];
+        this.leafColors = shuffleArray(this.leafColors);
+
+        this.setup();
+    }
+
+    getCol(t, doLerp = true) {
+        let eps = 0.0001;
+        t = constrain(t, 0, 1-eps);
+        let colIdx = floor(t * (this.leafColors.length - 1));
+        if(doLerp) {
+            let colIdx2 = (colIdx + 1) % this.leafColors.length;
+            let t2 = t * (this.leafColors.length - 1) - colIdx;
+            return lerpColor(this.leafColors[colIdx], this.leafColors[colIdx2], t2);
+        } else {
+            return this.leafColors[colIdx];
+        }
+    }
+
+    setup() {
+        let numLeaves = 600;
+        let szRange = [min(width,height)*0.10, min(width,height)*0.15];
+        let positions = getPositions(numLeaves, szRange);
+
+        this.leaves = [];
+        for(let pos of positions) {
+            let sz = random(...szRange);
+            let newLeaf = new OctoberLeaf(pos, sz);
+            newLeaf.col = this.getCol(newLeaf.n);
+            this.leaves.push(newLeaf);
+            // this.leaves[this.leaves.length - 1].col = this.getCol(, true);
+        }
+    }
+
+    *render() {
+        background(random(this.leafColors));
+        background(0, 100);
+        for(let leaf of this.leaves) {
+            leaf.render();
+            // break;
+        }
+        yield;
+    }
+}
+
+class OctoberLeaf {
+    constructor(pos, size) {
+        this.pos = pos;
+        this.size = size;
+        this.col = null
+
+        this.n = map(noise(this.pos[0] * 0.01, this.pos[1] * 0.01), 0.15, 0.85, 0, 1, true);
+
+        this.setup();
+    }
+
+    setup() {
+        let angle = this.n * TAU + random(-0.1, 0.1) * TAU;
+        this.spine = [
+            [this.pos[0] - cos(angle) * this.size * 0.5, this.pos[1] - sin(angle) * this.size * 0.5],
+            [this.pos[0] + cos(angle) * this.size * 0.5, this.pos[1] + sin(angle) * this.size * 0.5]
+        ];
+
+        let leafStartT = random(0.05, 0.15);
+        let leafEndT = random(0.85, 0.95);
+        let spineStart = lerpPos(this.spine[0], this.spine[1], leafStartT);
+        let spineEnd = lerpPos(this.spine[0], this.spine[1], leafEndT);
+
+        let offshoots = random(2, 5);
+        let offshootAngle = random(PI/4, PI/3);
+
+        this.spinePtsLeft = [];
+        this.offshootPtsLeft = [];
+        this.spinePtsRight = [];
+        this.offshootPtsRight = [];
+
+        const easeOutQuad = t => t * (2 - t);
+
+        for(let i = 0; i < offshoots; i++) {
+            let ti = i / (offshoots);
+            let t = lerp(leafStartT, leafEndT, ti);
+
+            let tLeft = constrain(t + random(-0.1, 0.1), 0, 1);
+            let tRight = constrain(t + random(-0.1, 0.1), 0, 1);
+
+            let spinePtLeft = lerpPos(spineStart, spineEnd, tLeft);
+            this.spinePtsLeft.push(spinePtLeft);
+            let spinePtRight = lerpPos(spineStart, spineEnd, tRight);
+            this.spinePtsRight.push(spinePtRight);
+
+            let angleBase = offshootAngle * lerp(0.25, 1.0, 1-t);
+            let spineAngleLeft = angle - angleBase;
+            let spineAngleRight = angle + angleBase;
+
+            let distBase = (this.size/1.5) * lerp(0.1, 0.75, easeOutQuad(1 - t));
+            let distLeft = distBase * random(0.9, 1);
+            let distRight = distBase * random(0.9, 1);
+
+            let offshootPtLeft = [
+                spinePtLeft[0] + cos(spineAngleLeft) * distLeft,
+                spinePtLeft[1] + sin(spineAngleLeft) * distLeft
+            ];
+            let offshootPtRight = [
+                spinePtRight[0] + cos(spineAngleRight) * distRight,
+                spinePtRight[1] + sin(spineAngleRight) * distRight
+            ];
+
+            this.offshootPtsLeft.push(offshootPtLeft);
+            this.offshootPtsRight.push(offshootPtRight);
+        }
+
+        this.leafShape = [
+            // this.offshootPtsLeft[0],
+            spineStart,
+            ...this.offshootPtsLeft,
+            this.spine[1],
+            ...[...this.offshootPtsRight].reverse()
+        ]
+
+        // this.
+
+        // this.leafShape = [this.spine[0], ...offshootPtsLeft, this.spine[1], ...offshootPtsRight.reverse()];
+
+    }
+
+
+    render() {
+        // let leafCol = color(random(20, 40), random(80, 100), random(80, 100));
+        noStroke();
+        fill(0, 100);
+        beginShape();
+        let shadowOffset = 0.005 * min(width, height);
+        for(let pt of this.leafShape) {
+            vertex(pt[0] + shadowOffset, pt[1] + shadowOffset);
+        }
+        endShape(CLOSE);
+        
+        fill(this.col);
+        stroke(0);
+        strokeWeight(0.002 * min(width, height));
+        beginShape();
+
+        for(let pt of this.leafShape) {
+            vertex(pt[0], pt[1]);
+        }
+
+        endShape(CLOSE);
+
+        stroke(0);
+        strokeWeight(0.0025 * min(width, height));
+        line(...this.spine[0], ...this.spine[1]);
+
+        for(let i = 0; i < this.spinePtsLeft.length; i++) {
+            line(...this.spinePtsLeft[i], ...this.offshootPtsLeft[i]);
+            line(...this.spinePtsRight[i], ...this.offshootPtsRight[i]);
+        }
+
+
+        
+        // fill('red');
+        // circle(this.pos[0], this.pos[1], this.size);
     }
 }
