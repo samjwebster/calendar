@@ -2347,9 +2347,15 @@ class October {
 
     *render() {
         background(random(this.leafColors));
+        yield;
         background(0, 100);
+
+        let i = 0;
+        let skipper = 100;
         for(let leaf of this.leaves) {
             leaf.render();
+            i += 1;
+            if(i % skipper == 0) yield;
             // break;
         }
         yield;
