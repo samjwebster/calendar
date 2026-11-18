@@ -53,6 +53,9 @@ function setup() {
     } else if (month == 10) {
         let c = new October(dayProgress);
         renderGen = c.render();
+    } else if (month == 11) {
+        let c = new November(dayProgress);
+        renderGen = c.render();
     } else {
         background('red');
     }

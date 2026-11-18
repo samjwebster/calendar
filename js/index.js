@@ -5,7 +5,7 @@ new p5();
 function generateGreeting() {
     let greetingTextElement = document.getElementById("greeting");
 
-    let names = ["Julia", "Jooby"];
+    let names = ["Julia"];
 
     let currentHour = new Date().getHours();
     let greetings;
@@ -49,9 +49,8 @@ function generateDateTime() {
         "1-1": "Happy New Year!",
         "1-6": "Happy National Bean Day!",
         "1-21": "Happy Squirrel Appreciation Day!",
-        "1-25": "Happy Birthday! I love you!",
+        "1-25": "Happy Birthday!",
         "2-9": "Happy National Poop Day!",
-        "2-14": "Happy Valentine's Day!",
         "3-8": "Happy International Women's Day!",
         "3-17": "Happy St. Patrick's Day!",
         "3-20": "Happy First Day of Spring!",
@@ -65,7 +64,6 @@ function generateDateTime() {
         "6-18": "Happy International Sushi Day!",
         "6-21": "Happy Summer Solstice!",
         "7-4": "Happy Independence Day!",
-        "7-5": "Happy Anniversary! I love you!",
         "7-17": "Happy Yellow Pig Day!",
         "8-2": "Happy Dinosaurs Day!",
         "8-8": "Happy International Cat Day!",
@@ -73,7 +71,6 @@ function generateDateTime() {
         "9-6": "Happy Labor Day!",
         "9-22": "Happy Autumnal Equinox!",
         "10-14": "Happy Columbus Day!",
-        "10-23": "It's my birthday! I love you!",
         "10-31": "Happy Halloween!",
         "11-9": "Happy Go To An Art Museum Day!",
         "11-26": "Happy Thanksgiving!",
@@ -92,92 +89,8 @@ function generateDateTime() {
     setTimeout(generateDateTime, secondsTilNextMinute * 1000);
 }
 
-function generateQuote() {
-    let quoteElement = document.getElementById("quote");
-
-    quotes = [
-        // Messages
-        {
-            "text": "And the joobies theyre marching to and fro.",
-            "author": "one of the Jooby songs"
-        }, {
-            "text": "Hiya there.",
-            "author": "Sooby"
-        }, {
-            "text": "hey Mamma. its me eeviekatt. I miss yoo.",
-            "author": "Evie"
-        }, {
-            "text": "All the joobies joobies joobies. All the joobies joobies joobies.",
-            "author": "Jooby"
-        },
-
-        // Positive affirmations
-        {
-            "text": "I am powerful from the top of my head to the tips of my toes.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am worthy of all the power of the universe, into my soul, my heart, and my blood.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am a radiant being of light, and I am love.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am a beautiful person, inside and out.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am doing my best, and that is enough.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am grateful for this moment, and I will find joy in it.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am growing and learning every day, and I embrace the journey.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am surrounded by love and support, and I am never alone.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am resilient and can overcome any challenge that comes my way.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am deserving of happiness and success, and I will work towards them with confidence.",
-            "author": "Sam Webster"
-        }, {
-            "text": "I am a unique and valuable person, and I will celebrate my individuality.",
-            "author": "Sam Webster"
-        },
-
-        // School manifestations
-        {
-            "text": "I am a diligent and focused student, and I will excel in my studies.",
-            "author": "Sam Webster"
-        },
-        {
-            "text": "I is the smartest there ever there was.",
-            "author": "Sam Webster"
-        },
-        {
-            "text": "my Mamma is the best studente.",
-            "author": "eeves ladybug"
-        }
-        
-    ]   
-
-
-    let quote = random(quotes);
-    let quoteHTML = "&ldquo;" + quote.text + "&rdquo;";
-    if (quote.author) {
-        quoteHTML += "<br>&mdash; " + quote.author;
-    } else {
-        quoteHTML += "<br>&mdash; Unknown";
-    }
-    
-    quoteElement.innerHTML = quoteHTML;
-}
-
 generateGreeting();
 generateDateTime();
-generateQuote();
 
 let now = new Date();
 let month = now.getMonth() + 1;

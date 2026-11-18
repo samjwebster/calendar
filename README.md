@@ -1,2 +1,2 @@
 # calendar
-A daily calendar for my girlfriend, Julia.
+A daily calendar for Julia.
